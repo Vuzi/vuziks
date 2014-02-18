@@ -35,13 +35,13 @@ typedef enum e_operation_type {
 	OP_MATH_PLUS = 3, OP_MATH_MINUS = 4, OP_MATH_MULT = 5, OP_MATH_POW = 6, OP_MATH_DIV = 7, OP_MATH_MODULO = 8,
 	OP_MATH_P_UNARY = 9, OP_MATH_N_UNARY = 10, OP_MATH_PARENTH = 11, OP_MATH_EQUAL = 12, OP_MATH_MINUS_UN = 13, OP_MATH_PLUS_UN = 14,
 	OP_MATH_GT = 20, OP_MATH_GE = 21, OP_MATH_LT = 22, OP_MATH_LE = 23, OP_MATH_EQ = 24, OP_MATH_DIF = 25, OP_MATH_NOT = 26, OP_MATH_AND = 27, OP_MATH_OR = 28,
-	OP_FUNC_BLOC = 50, OP_IT_BLOC = 51, OP_COND_BLOC = 52, OP_BLOC = 53,
+	OP_BLOC = 50,
 	OP_VALUE = 99
 } operation_type;
 
 // Type possible de valeurs d'une operation
 typedef enum e_operation_value_type {
-	OP_NAT_VAL, OP_VAR, OP_FUNC, OP_NONE
+	OP_NAT_VAL, OP_VAR, OP_FUNC, OP_FUNC_BLOC, OP_IT_BLOC, OP_COND_BLOC, OP_BLOC, OP_NONE
 } operation_value_type;
 
 typedef struct s_operation_value {
