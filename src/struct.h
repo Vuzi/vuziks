@@ -33,9 +33,9 @@ typedef enum e_operation_type {
 	OP_NOTHING = 1, 
 	OP_FUNC_CALL = 2, 
 	OP_MATH_PLUS = 3, OP_MATH_MINUS = 4, OP_MATH_MULT = 5, OP_MATH_POW = 6, OP_MATH_DIV = 7, OP_MATH_MODULO = 8,
-	OP_MATH_P_UNARY = 9, OP_MATH_N_UNARY = 10, OP_MATH_PARENTH = 11,
-	OP_MATH_GT = 20, OP_MATH_GE = 21, OP_MATH_LT = 22, OP_MATH_LE = 23, OP_MATH_EQ = 24, OP_MATH_DIF = 25, OP_MATH_NOT = 26,
-	OP_FUNC_BLOC = 30, OP_IT_BLOC = 31, OP_COND_BLOC = 32, OP_BLOC = 33,
+	OP_MATH_P_UNARY = 9, OP_MATH_N_UNARY = 10, OP_MATH_PARENTH = 11, OP_MATH_EQUAL = 12, OP_MATH_MINUS_UN = 13, OP_MATH_PLUS_UN = 14,
+	OP_MATH_GT = 20, OP_MATH_GE = 21, OP_MATH_LT = 22, OP_MATH_LE = 23, OP_MATH_EQ = 24, OP_MATH_DIF = 25, OP_MATH_NOT = 26, OP_MATH_AND = 27, OP_MATH_OR = 28,
+	OP_FUNC_BLOC = 50, OP_IT_BLOC = 51, OP_COND_BLOC = 52, OP_BLOC = 53,
 	OP_VALUE = 99
 } operation_type;
 
@@ -126,7 +126,7 @@ typedef struct s_function_list {
 
 
 //=====================================================================//
-//                 Blocs : bloc d'instruction spécifique
+//                 Blocs : bloc d'instructions spécifique
 
 // Bloc d'instruction vide
 typedef struct s_unit {
@@ -138,8 +138,9 @@ typedef struct s_unit {
 
 // Bloc d'unité conditionnel
 typedef struct s_unit_conditional {
-	operation *condition;      // Condition
+	operation *condition;            // Condition
 	unit *intern;
+	struct s_unit_conditional *next; // Prochaine condition
 } unit_conditional;
 
 // Bloc d'unité itératif
@@ -155,3 +156,90 @@ typedef struct s_unit_iterative {
 typedef struct s_unit_function {
 	unit *intern;
 } unit_function;
+
+
+//=====================================================================//
+//                 Exemple de construction d'un programme :
+/*
+
+	Code : 
+	-------------------------------------------------------------------
+	
+	var a = 12;
+
+	function foo(a,b) {
+		return(a+b*2);
+	}
+
+	print(foo(a,2));
+
+
+	Résultat possible en mémoire :
+	------------------------------------------------------------------
+
+	(Par défaut, on se trouve dans un "unit" général qui est utilisé comme point de lancement)
+
+	unit {
+		var_list {
+			var {
+				name = a;
+				name_h = 84565; (A faire avec une fonction de hashage basique)
+				type = L_INT;
+				value = 12;
+			}
+			next = NULL
+		}
+		var_func {
+			func {
+				name = a;
+				name_h = 84565; (A faire avec une fonction de hashage basique)
+				args {
+					var {
+						name = a;
+						name_h = 84565; (A faire avec une fonction de hashage basique)
+						type = L_NONE;
+						value = 0;
+					}
+					var {
+						name = b;
+						name_h = 84565; (A faire avec une fonction de hashage basique)
+						type = L_NONE;
+						value = 0;
+					}
+				}
+				instructions {
+					instruction {
+						node {
+							appel fonction return {
+								a+b*2 décomposé en arbre binaire...
+							}
+						}
+					}
+				}
+	
+			}
+			next = NULL;
+		}
+		instructions {
+			instruction {
+				node {
+					appel fonction print {
+						appel fonction foo() {
+							a
+							12
+						}
+					}
+				}
+			}
+		}
+	}
+
+	Note: suivant la manière dont est gérée le code, il faut voir comment adapter. Si on fait le 
+	choix de passer une première fois dans tout le code et de lire toutes les opérations, puis 
+	ensuite de l'executer alors par exemple l'ordre de déclaration des fonctions n'aura pas d'importance 
+	(Alors que si on lit au fur et à meusure, alors on ne peut appeller une fonction qu'après sa déclaration).
+
+	De même les variables de l'exemple ne sont ajoutée à la liste des variables qu'après avoir été traitées dans le code.
+
+	Règles du langage :
+	voir wiki
