@@ -1,23 +1,16 @@
-/*
-[bloc conditionnel]
-                    [instruction] [nodes]
-[bloc iteratif]
-[bloc fonction]
-                    [bloc instruction]
-                                       [instruction] [nodes]
-*/
 
 //=====================================================================//
 //                         Langage en lui-même
 
 // Type de donnée possibles
 enum e_language_type {
-	L_INT, L_FLOAT, L_DOUBLE, L_CHAR, L_BOOL, L_NULL, L_VOID // A voir
+	T_INT, T_LINT, T_FLOAT, T_DOUBLE, T_CHAR, T_BOOL, T_VOID
 } language_type;
 
 // Représente une valeur possible
 typedef union u_language_value {
 	int v_int;
+	long int v_lint;
 	float v_float;
 	double v_double;
 	char v_char;
@@ -26,72 +19,7 @@ typedef union u_language_value {
 
 
 //=====================================================================//
-//                   Node de l'arbre binaire (Opération)
-
-// Représente les différents types possibles d'une operation
-typedef enum e_operation_type {
-	OP_NOTHING = 1, 
-	OP_FUNC_CALL = 2, 
-	OP_MATH_PLUS = 3, OP_MATH_MINUS = 4, OP_MATH_MULT = 5, OP_MATH_POW = 6, OP_MATH_DIV = 7, OP_MATH_MODULO = 8,
-	OP_MATH_P_UNARY = 9, OP_MATH_N_UNARY = 10, OP_MATH_PARENTH = 11, OP_MATH_EQUAL = 12, OP_MATH_MINUS_UN = 13, OP_MATH_PLUS_UN = 14,
-	OP_MATH_GT = 20, OP_MATH_GE = 21, OP_MATH_LT = 22, OP_MATH_LE = 23, OP_MATH_EQ = 24, OP_MATH_DIF = 25, OP_MATH_NOT = 26, OP_MATH_AND = 27, OP_MATH_OR = 28,
-	OP_BLOC = 50,
-	OP_VALUE = 99
-} operation_type;
-
-// Type possible de valeurs d'une operation
-typedef enum e_operation_value_type {
-	OP_NAT_VAL, OP_VAR, OP_FUNC, OP_FUNC_BLOC, OP_IT_BLOC, OP_COND_BLOC, OP_BLOC, OP_NONE
-} operation_value_type;
-
-typedef struct s_operation_value {
-	operation_value_type type;
-	operation_value_union v;
-} operation_value;
-
-typedef union u_operation_value_union {
-	s_operation_value_var_nat var_nat; // Variable naturelle
-	struct variable *var;              // Lien vers variable enregistrée
-	//function func;                   // Lien vers fonction enregistrée
-	unit bloc;                         // Bloc de code
-	unit_conditional conditional_bloc; // Bloc conditionnel
-	unit_iterative iterative_bloc;     // Bloc iteratif
-	unit_function function_bloc;       // Bloc déclaration fonction
-} operation_value_union;
-
-// Représente une valeur possible utilisable (Avec type)
-typedef struct s_operation_value_var_nat {
-	language_type type;
-	language_value value;
-} operation_value_var;
-
-// Une operation représente une opération simple
-typedef struct s_operation {
-	operation_type type;            // Type d'opération, obligatoire
-	langage_type r_type;            // Type valeur renvoyée, obligatoire
-	operation_value value;          // Valeur de l'arbre, facultatif dans le cas d'opération
-	struct operation **operations;  // Branches de l'arbre binaire, facultatif si l'arbre s'arrête
-	unsigned int n_operations;      // Nombre de branches (2 branches normalements, plus suivant les fonctions)
-} operation;
-
-// Accès à une variable naturelle int :
-// operation -> value -> v -> var_nat -> value -> v_int
-// Accès à une variable enregistrée int :
-// operation -> value -> v -> var -> value -> v_int
-
-
-//=====================================================================//
-//                   Instructions : Liste d'instructions
-//                        d'un bloc d'instruction
-
-typedef struct s_instruction {
-	struct s_instruction *next;  // Suivante instruction
-	operation *operations;       // Arbre des opérations contenue dans l'instruction
-} instruction;
-
-
-//=====================================================================//
-//               variable : variable déclarée et utilisable
+//               variable : variable utilisable
 
 // Variable en mémoire
 typedef struct s_variale {
@@ -109,20 +37,58 @@ typedef struct s_variale_list {
 
 
 //=====================================================================//
-//               Function : fonction déclarée et utilisable
+//                   Node de l'arbre binaire (Opération)
 
-typedef struct s_function {
-	char* name;              // Nom de la fonction (en toute lettre)
-	int name_h;              // Hash du nom de la fonction
-	s_variale_list *args;
-	instruction *content;
-} function;
+// Représente les différents types possibles d'une operation
+typedef enum e_operation_type {
+	OP_NOTHING = 0, 
+	OP_FUNC_CALL = 10, 
+	OP_MATH_PLUS = 20, OP_MATH_MINUS = 21, OP_MATH_MULT = 22, OP_MATH_POW = 23, OP_MATH_DIV = 24, OP_MATH_MODULO = 25,
+	OP_MATH_P_UNARY = 26, OP_MATH_N_UNARY = 27, OP_MATH_PARENTH = 28, OP_MATH_AFF = 29,
+	OP_MATH_GT = 30, OP_MATH_GE = 31, OP_MATH_LT = 32, OP_MATH_LE = 33, OP_MATH_EQ = 34, OP_MATH_DIF = 35, OP_MATH_NOT = 36, OP_MATH_AND = 37, OP_MATH_OR = 38,
+	OP_VALUE = 40
+} operation_type;
 
-// Liste de fonctions
-typedef struct s_function_list {
-	struct s_function_list* next;
-	variable func;
-} function_list;
+// Valeurs possibles
+typedef union u_operation_value {
+	char* var;
+	variable var;
+} operation_value;
+
+// Noeud de l'arbre
+typedef struct s_operation {
+	struct s_operation **operations;
+	unsigned int n;
+	operation_type type;
+	operation_value value;
+} operation;
+
+
+//=====================================================================//
+//                   Instructions : Liste d'instructions
+//                        d'un bloc d'instruction
+
+typedef union s_value_instruction {
+	unit_loop *loop;
+	unit_conditional *cond;
+	unit *base;
+	unit_function *func;
+	operation *op;
+} value_instruction;
+
+typedef enum e_type_instruction {
+	I_OP, I_FOR, I_IF, I_UNIT, I_FUNC
+} type_instruction;
+
+typedef struct s_instruction {
+	value_instruction value;
+	type_instruction type;
+} instruction;
+
+typedef struct s_instruction_list {
+	struct s_instruction_list *next;
+	instruction *ins;
+} instruction_list;
 
 
 //=====================================================================//
@@ -130,118 +96,62 @@ typedef struct s_function_list {
 
 // Bloc d'instruction vide
 typedef struct s_unit {
-	variale_list *var_list;     // Liste des variables de l'unité
-	function_list *func_list;   // Liste des fonctions de l'unité
-	struct s_unit *container;   // Bloc contenant ce bloc d'instruction
-	instruction *content;       // Liste des instructions du bloc
+	value_instruction parent;    // Contexte, à modifier pour les fonctions
+	type_instruction parent_type;
+                                 // Liste des éléments
+	variable_list *variables;
+	function_list *functions;
+	instruction_list *instructions;
 } unit;
 
-// Bloc d'unité conditionnel
-typedef struct s_unit_conditional {
-	operation *condition;            // Condition
-	unit *intern;
-	struct s_unit_conditional *next; // Prochaine condition
-} unit_conditional;
-
-// Bloc d'unité itératif
-typedef struct s_unit_iterative {
+// Bloc de boucle itératives
+typedef struct s_unit_loop {
+	unit intern;
 	operation *start_action;      // Action de début, 'i = 0' par exemple
 	operation *end_action;        // Action de fin (Par d'exemple en C)
 	operation *start_condition;   // Condition de début (testé avant de lancer chaque boucle)
 	operation *end_condition;     // Condition de fin (cas du do while en C)
-	unit *intern;
-} unit_iterative;
+} unit_loop;
+
+// Bloc d'unité conditionnel
+typedef struct s_unit_conditional {
+	unit intern;
+	operation *condition;            // Condition
+	struct s_unit_conditional *next; // Prochaine condition
+} unit_conditional;
 
 // Bloc d'unité fonction
 typedef struct s_unit_function {
-	unit *intern;
+	unit intern;
+	char *name;
+	char **args;  // A voir
+	int n_args;
 } unit_function;
 
 
 //=====================================================================//
-//                 Exemple de construction d'un programme :
-/*
+//                 Blocs : bloc de fonction
 
-	Code : 
-	-------------------------------------------------------------------
-	
-	var a = 12;
+// Fonction
+typedef struct s_function {
+	char* name;            // Nom de la fonction (en toute lettre)
+	int name_h;            // Hashage du nom de la fonction, pour la trouver
+	unit *intern;
+	variable_list *args;   // Arguments
+} function;
 
-	function foo(a,b) {
-		return(a+b*2);
-	}
+// Liste de fonctions
+typedef struct s_function_list {
+	struct s_function_list *next;
+	function func;
+} function_list;
 
-	print(foo(a,2));
 
 
-	Résultat possible en mémoire :
-	------------------------------------------------------------------
+//=====================================================================//
+//                          Prog
 
-	(Par défaut, on se trouve dans un "unit" général qui est utilisé comme point de lancement)
+typedef struct s_program {
+	unit *intern;           // Point de lancement du programme
+}
 
-	unit {
-		var_list {
-			var {
-				name = a;
-				name_h = 84565; (A faire avec une fonction de hashage basique)
-				type = L_INT;
-				value = 12;
-			}
-			next = NULL
-		}
-		var_func {
-			func {
-				name = a;
-				name_h = 84565; (A faire avec une fonction de hashage basique)
-				args {
-					var {
-						name = a;
-						name_h = 84565; (A faire avec une fonction de hashage basique)
-						type = L_NONE;
-						value = 0;
-					}
-					var {
-						name = b;
-						name_h = 84565; (A faire avec une fonction de hashage basique)
-						type = L_NONE;
-						value = 0;
-					}
-				}
-				instructions {
-					instruction {
-						node {
-							appel fonction return {
-								a+b*2 décomposé en arbre binaire...
-							}
-						}
-					}
-				}
-	
-			}
-			next = NULL;
-		}
-		instructions {
-			instruction {
-				node {
-					appel fonction print {
-						appel fonction foo() {
-							a
-							12
-						}
-					}
-				}
-			}
-		}
-	}
-
-	Note: suivant la manière dont est gérée le code, il faut voir comment adapter. Si on fait le 
-	choix de passer une première fois dans tout le code et de lire toutes les opérations, puis 
-	ensuite de l'executer alors par exemple l'ordre de déclaration des fonctions n'aura pas d'importance 
-	(Alors que si on lit au fur et à meusure, alors on ne peut appeller une fonction qu'après sa déclaration).
-
-	De même les variables de l'exemple ne sont ajoutée à la liste des variables qu'après avoir été traitées dans le code.
-
-	Règles du langage :
-	voir wiki
-	
-*/
