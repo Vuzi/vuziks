@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+<<<<<<< HEAD
 #include <string.h>
 
 
@@ -512,5 +513,10 @@ int main(void) {
 
     var_list_del(var_l);
 
+=======
+
+int main(void) {
+    printf("Hello world!\n");
+>>>>>>> Ajout du code de gestion des variables
     return 0;
 }
