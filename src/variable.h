@@ -67,4 +67,32 @@ typedef enum e_operation_type {
 
 } operation_type;
 
+// Prototypes
+
+void debug_pr_lvl(void);
+void var_dump(Variable *v);
+const char* language_type_debug(language_type l);
+
+return_code var_init(Variable **a, const char* name, language_type type);
+
+return_code var_op(Variable *a, Variable *b, Variable *r, operation_type type);
+return_code var_op_add(Variable *a, Variable *b, Variable *r);
+return_code var_op_min(Variable *a, Variable *b, Variable *r);
+return_code var_op_mult(Variable *a, Variable *b, Variable *r);
+return_code var_op_pow(Variable *a, Variable *b, Variable *r);
+return_code var_op_div(Variable *a, Variable *b, Variable *r);
+return_code var_op_intdiv(Variable *a, Variable *b, Variable *r);
+return_code var_op_modulo(Variable *a, Variable *b, Variable *r);
+return_code var_op_math(Variable *a, Variable *b, Variable *r, operation_type type);
+return_code var_op_un_p(Variable *a, Variable *r);
+return_code var_op_un_m(Variable *a, Variable *r);
+return_code var_op_math_unary(Variable *a,Variable *r, operation_type type);
+return_code var_op_comp(Variable *a, Variable *b, Variable *r, operation_type type);
+return_code var_op_equal(Variable *a, Variable *b, Variable *r, operation_type type);
+return_code var_op_type(Variable *a, Variable *b, Variable *r, operation_type type);
+return_code var_op_or_and(Variable *a, Variable *b, Variable *r, operation_type type);
+return_code var_op_not(Variable *a, Variable *b, Variable *r);
+return_code var_op_log(Variable *a, Variable *b, Variable *r, operation_type type);
+
+
 #endif // _H_VARIABLE

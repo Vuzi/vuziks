@@ -3,7 +3,7 @@
 // Pour la mise en page des dumps et aux affichages de debug
 int debug_lvl = 0;
 
-void debug_pr_lvl() {
+void debug_pr_lvl(void) {
     int i = 0;
     for(; i < debug_lvl; i++)
         fputs("|  ", stdout);
@@ -29,30 +29,63 @@ const char* language_type_debug(language_type l) {
     }
 }
 
+// Initialisation
+return_code var_init(Variable **a, const char* name, language_type type) {
+
+    if(!(*a)) {
+        (*a) = (Variable*)malloc(sizeof(Variable));
+    }
+
+    (*a)->name = (name ? str_copy(name) : NULL);
+    (*a)->name_h = (name ? str_hash(name) : 0);
+    (*a)->type = type;
+
+    switch(type) {
+        case T_NULL :
+            return RC_OK;
+        case T_BOOL :
+            (*a)->value.v_bool = 0;
+            return RC_OK;
+        case T_NUM :
+            (*a)->value.v_num = 0.0;
+            return RC_OK;
+        case T_ARRAY :
+            return RC_OK;
+        case T_REF :
+            return RC_OK;
+        case T_OBJECT :
+            return RC_OK;
+        default :
+            err_add(E_CRITICAL, UNKOWN_TYPE, "Creation with an unknown type : the variable type cannot be resolved as a known type");
+            return RC_ERROR;
+    }
+}
+
+
 // Opérations
 return_code var_op_add(Variable *a, Variable *b, Variable *r) {
-    r->value.v_num = a->value.v_num + a->value.v_num;
+    r->value.v_num = a->value.v_num + b->value.v_num;
     return RC_OK;
 }
 
 return_code var_op_min(Variable *a, Variable *b, Variable *r) {
-    r->value.v_num = a->value.v_num - a->value.v_num;
+    r->value.v_num = a->value.v_num - b->value.v_num;
     return RC_OK;
 }
 
 return_code var_op_mult(Variable *a, Variable *b, Variable *r) {
-    r->value.v_num = a->value.v_num * a->value.v_num;
+    r->value.v_num = a->value.v_num * b->value.v_num;
     return RC_OK;
 }
 
 return_code var_op_pow(Variable *a, Variable *b, Variable *r) {
-    r->value.v_num = pow(a->value.v_num, a->value.v_num);
+    r->value.v_num = pow(a->value.v_num, b->value.v_num);
     return RC_OK;
 }
 
 return_code var_op_div(Variable *a, Variable *b, Variable *r) {
     if(a->value.v_num != 0) {
-        r->value.v_num = a->value.v_num / a->value.v_num;
+        r->value.v_num = a->value.v_num / b->value.v_num;
         return RC_OK;
     } else {
         err_add(E_CRITICAL, OP_IMPOSSIBLE, "Division by zero : it's not a clever thing to do in programming");
@@ -62,7 +95,7 @@ return_code var_op_div(Variable *a, Variable *b, Variable *r) {
 
 return_code var_op_intdiv(Variable *a, Variable *b, Variable *r) {
     if(a->value.v_num != 0) {
-        r->value.v_num = integer_division(a->value.v_num, a->value.v_num);
+        r->value.v_num = integer_division(a->value.v_num, b->value.v_num);
         return RC_OK;
     } else {
         err_add(E_CRITICAL, OP_IMPOSSIBLE, "Division by zero : it's not a clever thing to do in programming");
@@ -147,15 +180,20 @@ return_code var_op_comp(Variable *a, Variable *b, Variable *r, operation_type ty
     if(a->type == T_NUM && a->type == b->type) {
 
         r->type = T_BOOL;
+        puts("hello");
         switch(type) {
             case OP_LOG_GT :
-                r->value.v_bool = ( a->value.v_num >  b->value.v_num ? 1 : 0 );
+                r->value.v_bool = ( a->value.v_num > b->value.v_num ? 1 : 0 );
+                break;
             case OP_LOG_GE :
                 r->value.v_bool = ( a->value.v_num >= b->value.v_num ? 1 : 0 );
+                break;
             case OP_LOG_LT :
                 r->value.v_bool = ( a->value.v_num <  b->value.v_num ? 1 : 0 );
+                break;
             case OP_LOG_LE :
                 r->value.v_bool = ( a->value.v_num <= b->value.v_num ? 1 : 0 );
+                break;
             default :
                 err_add(E_CRITICAL, UNKOWN_TYPE, "Comparison with an unknown type : the comparison type cannot be resolved as a known type");
                 return RC_ERROR;
@@ -220,8 +258,10 @@ return_code var_op_or_and(Variable *a, Variable *b, Variable *r, operation_type 
         switch(type) {
             case OP_LOG_AND :
                 r->value.v_bool = ( a->value.v_bool &&  b->value.v_bool ? 1 : 0 );
+                break;
             case OP_LOG_OR :
                 r->value.v_bool = ( a->value.v_bool ||  b->value.v_bool ? 1 : 0 );
+                break;
             default :
                 err_add(E_CRITICAL, UNKOWN_TYPE, "Logical operation with an unknown type : the logical operation type cannot be resolved as a known type");
                 return RC_ERROR;

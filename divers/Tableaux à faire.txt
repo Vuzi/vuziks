@@ -1,0 +1,118 @@
+Règles d'écriture :
+
+Toutes les fonctions de traitement doivent retourner une variable de type return_code. Celle-ci peu prendre 4 valeurs:
+
+	RC_OK : Aucune erreur, le traitement s'est correctement passé
+	RC_WARNING : Le traitement s'est correctement passé, mais une mauvaise pratique à été detectée
+	RC_ERROR : Le traitement ne s'est pas correctement déroulé, mais le programme peut continuer
+	RC_CRITICAL : Le traitement ne s'est pas correctement déroulé, le programme doit s'arrêter car sa stabilité est en jeu
+
+Ces valeurs seront lues plus haut dans le programme. Ainsi quand le programme qui gère le déplacement dans l'arbre 
+verra une de ces erreurs revenir d'un des traitements lancé, il effectuera les meusures necessaires.
+
+En cas d'erreur (Par exemple une division par zéro) :
+	
+	Utiliser la fonction "err_add" qui attend le type d'erreur et un court texte descriptif (max 511 caractères) en anglais.
+	Pour l'instant cette fonction rempli simplement un buffer uniquement (L'appeller plusieurs fois écrase le buffer). Plus
+	tard elle servira pour afficher les messages d'erreur, donc à bien utiliser. Celle-ci fonctionne comme printf, on peut
+	donc lui envoyer des informations du type err_add(UNKNOWN_TYPE, "The variable %s has no known type", var->name) .
+
+Les bonnes pratiques :
+
+	Le malloc et cie sont lents, très lents, et il faut a tout prix éviter d'en faire. On reste parfois obligé d'en faire, mais
+	si on peut par exemple utiliser une variable locale alors il vaut mieux procéder de cette manière. Par exemple la fonction 
+	d'évaluation des opérations qui se lance avec le buffer déjà alloué, buffer qui sera conservé jusqu'à la fin du trairement.
+
+	Tout tester et tout prévoir, toujours. Attention à ne pas non plus avoir de tests en double à la suite qui ne servent donc
+	à rien.
+
+	Avoir des noms de fonctions explicites et cours, du genre var_op_add pour la fonction qui additionne deux variables.
+
+	Un traitement, une fonction. Si un traitement est écrit plusieurs fois dans une même fonctions ou des fonctions différentes, alors
+	sa place est dans une autre fonction.
+
+Truc à faire :
+
+	Gestion du type des tableaux :
+
+	1/ keskesé que le tableau en vuziks
+		La même chose que dans tout les langages, sauf en C où c'est un truc de bonhomme. En C il s'agit d'une suite de données 
+		contigues dans la mémoire, et ça marche parcequ'on a accès à la mémoire et qu'on peut donc y foutre n'importe quoi. En vuziks 
+		hors de question d'y accéder directement (Sinon risque plantage programme), c'est notre programme qui justement se chargera des 
+		tâches dangereuses : accès, écriture, lecture, allocation, etc... bref tout ce qui pourrait causer un plantage.
+
+		Imaginon un exemple avec un tableau de 5 flottant, en C et en Vuziks. On souhaite accéder à la case 6 :
+			En C      : Plantage ou résultat aléatoire (et faux) -> on lit réellement a 6 'cases' du début, càd n'importe où
+			En vuziks : valeur null, car case n'existant pas. L'intepreteur à vérifié que la case existait, et comme ce n'était
+			            pas le cas retourne null
+
+    2/ Propriété des tableaux en vuziks
+    	1/ Ils sont dynamique, on peut ajouter des cases dans tout les sens sans jamais avoir de problèmes, car on se charge nous
+    	   même de moduler la taille selon les besoins
+
+    	2/ Ils sont associatifs, càd qu'ils fonctionnent avec un système de clef - valeur. Si aucune clef n'est utilisée, alors la   
+    	   numérotation sera semblable au C (0 à n-1), mais ils peuvent associer une valeur différente (chaine, objet) à une clef. 
+    	   Les clefs ne sont pas obligatoirement du même type (Structure Variable qui peut tout prendre), mais ne peuvent pas
+    	   avoir la valeur null (illogique)
+
+    	3/ Ils sont safe. En aucun cas il n'est possible de les mettre en déroute. Il doit être IMPOSSIBLE d'effectuer un débordement
+    	   ou tout autre opération. Le seul cas d'erreur possible est un échec d'allocation au cas où l'utilisateur n'aurait plus
+    	   de mémoire (Pour l'instant on va faire simple, à ne pas gérer)
+
+    	4/ Accèder à une clef qui n'existe pour y allouer un élement pas la crée. Sur mon tableau de 5 cases de tout à l'heure, faire 	
+    	   tab[6] = 12 vas ajouter la valeur 12 à la clef 6, ce qui donnera :
+	    		0 = 1
+	    		1 = 42.25
+	    		2 = 4598
+	    		3 = 14.89
+	    		4 = 0.2
+	    		6 = 12
+	       Il sera donc possible d'avoir des clef non contigue, ce qui importe peut car si on crée un dictionnaire et bhé on s'en fout.
+	       Dans l'utilisation classique (comme en C), les clefs seront gérée par nous et donc contigue.
+
+	3/ Opérations à gérer
+		Il va nous falloir gérer les opérations basiques sur le tableau, pour faciliter la vie à l'utilisateur
+
+		1/ Get (Accès à une case) -> return_code var_op_array_get(Array* a, Variable* key, Variable *r)
+			Le plus simple, on cherche à accéder à une case et à en récupérer la valeur. Si aucune case n'as cette clef, alors
+			la valeur de retour sera de type 'null'
+
+		2/ Remove (Récupération d'une case) -> return_code var_op_array_remove(Array* a, Variable* key, Variable *r)
+			Prend la valeur, et la retire du tableau. A toi de voir comment gérer ça, si tu préféres tout réécrire ou tricher en mettant
+			simplement la case comme étant vide. Si aucune case n'as cette clef, alors la valeur de retour sera de type 'null' et on
+			ne supprimer rien
+
+		3/ Push (Ajout d'une valeur en fin de tableau) -> return_code var_op_array_push(Array* a, Variable *v)
+			Ajoute la valeur en fin de tableau en calculant automatiquement sa clef par rapport aux autres (Dernier numérique la
+			plus grande +1 ou 0)
+
+		4/ Pop (Récupération dernière case autonamtiquement) -> return_code var_op_array_pop(Array* a, Variable *r)
+			Récupère la valeur avec le plus grand indice numérique (Ou sinon la dernière), et la supprime du tableau
+
+		5/ Insert (Insertion d'une valeur) -> return_code var_op_array_pop(Array* a, Variable* key, Variable *v)
+			Insert une valeur à la clef indiqué. Si une valeur existe déjà, elle est supprimée et remplacée, sinon la case
+			est crée.
+
+		6/ Sort (Pourquoi pas - Tri automatique du tableau ) var_op_array_sort(Array* a)
+			Trie et remplace les clefs par des valeurs de 0 à n-1
+
+		7/ Comparaison (Compare deux tableau) var_op_array_eq(Array* a, Array *b)
+			Compare deux tableau. Si leur taille est différente, ou si une clef n'est pas présente, ou une valeur pointé par une clef 
+			différente, alors ils sont différents.
+
+		8/ Initialisation (Crée un tableau vide ) var_array_init(Array** a);
+			Crée un tableau fonctionnel vide
+
+		9/ Suppression (Supprime ) var_array_del(Array** a);
+			Supprime le tableau de la mémoire de la machine
+
+	4/ Pistes pour débuter :
+		Le cours de mr Thomas où justement on avait masqué le fonctionnement d'un tableau se rapproche pas mal de ça. A savoir qu'on 
+		fonctionne par buffer avec par exemple par défaut un tableau (vide) de 5 cases, et si on remplit les 5, il en réalloue avec un
+		taux de 1.5 fois (càd 5 + 5/2, soit 7 cases de plus). N'utilise pas realloc, c'est de la merde, il faut forcément allouer la 
+		nouvelle zone, recopier, supprimmer l'ancienne.
+
+		De même si le tableau est trop vide, on peut penser à supprimer certaines cases inutiles (Ici on peut directement free le morceau je pense, pas besoin de recopier).
+
+
+Voilà ! Si on gère ce type, ça permettra de faire des choses très sympa dans le programme sans avoir à s'embêter. A mon avis, avec nos 'objets' ce serat quelque chose de très cool à utiliser. Et a coder c'est un peu notre cours avec quelques éléments en plus.
