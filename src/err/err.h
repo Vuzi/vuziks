@@ -8,7 +8,7 @@
 //                     Buffer d'erreur - provisoir
 
 typedef enum e_return_code {
-    RC_OK, RC_WARNING, RC_ERROR, RC_CRITICAL
+    RC_OK, RC_WARNING, RC_ERROR, RC_CRITICAL, RC_BREAK, RC_RETURN
 } return_code;
 
 typedef enum e_error_type {

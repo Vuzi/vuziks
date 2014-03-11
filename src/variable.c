@@ -30,35 +30,45 @@ const char* language_type_debug(language_type l) {
 }
 
 // Initialisation
+return_code var_init_loc(Variable *a, const char* name, language_type type) {
+
+    if(a) {
+        a->name = (name ? str_copy(name) : NULL);
+        a->name_h = (name ? str_hash(name) : 0);
+        a->type = type;
+
+        switch(type) {
+            case T_NULL :
+                return RC_OK;
+            case T_BOOL :
+                a->value.v_bool = 0;
+                return RC_OK;
+            case T_NUM :
+                a->value.v_num = 0.0;
+                return RC_OK;
+            case T_ARRAY :
+                return RC_OK;
+            case T_REF :
+                return RC_OK;
+            case T_OBJECT :
+                return RC_OK;
+            default :
+                err_add(E_CRITICAL, UNKOWN_TYPE, "Creation with an unknown type : the variable type cannot be resolved as a known type");
+                return RC_ERROR;
+        }
+    } else {
+        err_add(E_CRITICAL, UNKOWN_TYPE, "Creation with an unknown type : the variable type cannot be resolved as a known type");
+        return RC_ERROR;
+    }
+}
+
 return_code var_init(Variable **a, const char* name, language_type type) {
 
     if(!(*a)) {
         (*a) = (Variable*)malloc(sizeof(Variable));
     }
+    return var_init_loc(*a, name, type);
 
-    (*a)->name = (name ? str_copy(name) : NULL);
-    (*a)->name_h = (name ? str_hash(name) : 0);
-    (*a)->type = type;
-
-    switch(type) {
-        case T_NULL :
-            return RC_OK;
-        case T_BOOL :
-            (*a)->value.v_bool = 0;
-            return RC_OK;
-        case T_NUM :
-            (*a)->value.v_num = 0.0;
-            return RC_OK;
-        case T_ARRAY :
-            return RC_OK;
-        case T_REF :
-            return RC_OK;
-        case T_OBJECT :
-            return RC_OK;
-        default :
-            err_add(E_CRITICAL, UNKOWN_TYPE, "Creation with an unknown type : the variable type cannot be resolved as a known type");
-            return RC_ERROR;
-    }
 }
 
 
@@ -176,11 +186,8 @@ return_code var_op_math_unary(Variable *a,Variable *r, operation_type type) {
 
 return_code var_op_comp(Variable *a, Variable *b, Variable *r, operation_type type) {
 
-
     if(a->type == T_NUM && a->type == b->type) {
-
         r->type = T_BOOL;
-        puts("hello");
         switch(type) {
             case OP_LOG_GT :
                 r->value.v_bool = ( a->value.v_num > b->value.v_num ? 1 : 0 );
@@ -316,19 +323,28 @@ return_code var_op_log(Variable *a, Variable *b, Variable *r, operation_type typ
 }
 
 // Effectuer une opération mathématique
-return_code var_op(Variable *a, Variable *b, Variable *r, operation_type type) {
-    if(OP_MATH & type)
-        return var_op_math(a, b, r, type);
-    else if(OP_MATH_UNARY & type)
-        return var_op_math_unary(a, r, type);
-    else if(OP_LOG & type)
-        return var_op_log(a, b, r, type);
-    /*else if(OP_UNIT & type)
-        return var_op_unit(a, b, type);*/
-    else if(OP_PARENTH == type) {
-        r->type = a->type; r->value = a->value;
-        return RC_OK;
-    } else {
+return_code var_op(Variable *a, Variable *b, Variable **r, operation_type type) {
+
+    // Hub de traitement des variable. Que ce soit opération, accès, affectation, toute
+    // opération de ce type passe par là, d'où la présence de et binaire pour éviter de
+    // perdre du temps et limiter les traitement
+
+    if(OP_MATH & type) // Opération mathématique
+        return var_op_math(a, b, *r, type);
+    else if(OP_MATH_UNARY & type) // Opération mathématique unaire
+        return var_op_math_unary(a, *r, type);
+    else if(OP_LOG & type) // Opération logique
+        return var_op_log(a, b, *r, type);
+    else if(OP_ASSIGN == type) {
+        return RC_OK; //return var_op_assign(a, b, r);
+    } else if(OP_PARENTH == type) {
+        if((*r)->name_h != 0) { // Non anonyme
+            *r = a;
+        } else { // Anonyme
+           (*r)->type = a->type; (*r)->value = a->value;
+        }
+        return RC_OK; // Parenthèse, on retourne simplement la valeur contenue dans la parenthese
+    } else { // Erreur opération inconnue !
         err_add(E_CRITICAL, UNKOWN_TYPE, "Unknown type of operation between two variable");
         return RC_ERROR;
         // todo : écrire l'erreur
