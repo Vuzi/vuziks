@@ -3,6 +3,9 @@
 
 #include "variable.h"
 #include "operation.h"
+#include "unit.h"
+
+#include "hash/hash.h"
 
 void test_variable(void) {
 
@@ -73,12 +76,18 @@ void test_variable(void) {
 
 void test_node(void) {
 
+    Exec_context ec_obj;
+    Exec_context ec_tmp;
+
     Operation root;
 
     Variable a, b, c, r;
     Variable *result = &r;
 
-    var_init_loc(&a, NULL, T_NUM);
+    ec_obj.variables = NULL;
+    ec_tmp.variables = NULL;
+
+    var_init_loc(&a, "a", T_NUM);
     var_init_loc(&b, NULL, T_NUM);
     var_init_loc(&c, NULL, T_NUM);
     var_init_loc(&r, NULL, T_NULL);
@@ -87,14 +96,17 @@ void test_node(void) {
     b.value.v_num = 2.0;
     c.value.v_num = 3.0;
 
+    linked_list_append(&(ec_obj.variables), (void*)(&a));
+
     root.type = OP_MATH_PLUS;
     root.info.val = NULL;
     root.info.val_h = 0;
     root.value = NULL;
 
     root.operations[0] = malloc(sizeof(Operation));
-    root.operations[0]->type = OP_VALUE;
-    root.operations[0]->value = &a;
+    root.operations[0]->type = OP_ACCES;
+    root.operations[0]->info.val = "a";
+    root.operations[0]->info.val_h = str_hash("a");
     root.operations[0]->operations[0] = NULL;
     root.operations[0]->operations[1] = NULL;
 
@@ -128,7 +140,7 @@ void test_node(void) {
          ----------------------
     */
 
-    if(op_eval(&root, &result) == RC_OK) // Ici marche, sinon tester type de retour
+    if(op_eval(&root, &ec_obj, &ec_tmp, &result) == RC_OK) // Ici marche, sinon tester type de retour
         var_dump(result);
     else
         err_display_last(&e);

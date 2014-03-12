@@ -329,6 +329,8 @@ return_code var_op(Variable *a, Variable *b, Variable **r, operation_type type) 
     // opération de ce type passe par là, d'où la présence de et binaire pour éviter de
     // perdre du temps et limiter les traitement
 
+    //var_dump(a); var_dump(b); // debug
+
     if(OP_MATH & type) // Opération mathématique
         return var_op_math(a, b, *r, type);
     else if(OP_MATH_UNARY & type) // Opération mathématique unaire
@@ -351,6 +353,17 @@ return_code var_op(Variable *a, Variable *b, Variable **r, operation_type type) 
     }
 }
 
+Variable* var_search(Linked_list *ll, const char* name, hash_t name_h) {
+    while(ll) {
+        if(( ((Variable*)ll->value)->name_h == name_h ) && !strcmp(((Variable*)ll->value)->name, name))
+            return (Variable*)ll->value;
+        else
+            ll = ll->next;
+    }
+
+    return NULL;
+}
+
 // Affichage debug
 void var_dump(Variable *v) {
     debug_pr_lvl(), puts(">variable :");
@@ -369,6 +382,9 @@ void var_dump(Variable *v) {
                 break;
             case T_NULL:
                 puts("null");
+                break;
+            case T_NONEXISTENT:
+                puts("non-existent");
                 break;
             /* Autres case à faire */
             default :

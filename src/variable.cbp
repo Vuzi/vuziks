@@ -46,6 +46,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="math/math.h" />
+		<Unit filename="operation.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="operation.h" />
 		<Unit filename="str/str.c">
 			<Option compilerVar="CC" />
 		</Unit>
