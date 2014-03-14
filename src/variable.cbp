@@ -29,8 +29,21 @@
 			</Target>
 		</Build>
 		<Compiler>
+			<Add option="-O3" />
+			<Add option="-Wshadow" />
+			<Add option="-Winit-self" />
+			<Add option="-Wredundant-decls" />
+			<Add option="-Wcast-align" />
+			<Add option="-Wundef" />
+			<Add option="-Wmissing-declarations" />
+			<Add option="-Wmissing-include-dirs" />
+			<Add option="-Wfatal-errors" />
+			<Add option="-Wextra" />
 			<Add option="-Wall" />
 		</Compiler>
+		<Linker>
+			<Add option="-s" />
+		</Linker>
 		<Unit filename="err/err.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -39,6 +52,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="hash/hash.h" />
+		<Unit filename="linkedList/linkedList.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="linkedList/linkedList.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -54,6 +71,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="str/str.h" />
+		<Unit filename="unit.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="unit.h" />
 		<Unit filename="variable.c">
 			<Option compilerVar="CC" />
 		</Unit>

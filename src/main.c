@@ -7,15 +7,18 @@
 
 #include "hash/hash.h"
 
+void test_variable(void);
+void test_node(void);
+
 void test_variable(void) {
 
     Variable a, b, c;
     Variable *_a = &a, *_b = &b, *_c = &c;
 
     // Initialisation
-    var_init(&_a, "a", T_NUM);
-    var_init(&_b, "b", T_NUM);
-    var_init(&_c, NULL, T_NUM);
+    var_init(&_a, "a", str_hash("a"), T_NUM);
+    var_init(&_b, "b", str_hash("b"), T_NUM);
+    var_init(&_c, NULL, 0, T_NUM);
 
     var_dump(_a);
     var_dump(_b);
@@ -57,16 +60,16 @@ void test_variable(void) {
     var_dump(_c);
 
     // Test d'erreur
-    var_init(&_a, "a", T_NULL);
-    var_init(&_b, "b", T_NUM);
+    var_init(&_a, "a", str_hash("a"), T_NULL);
+    var_init(&_b, "b", str_hash("b"), T_NUM);
 
     var_op(_a, _b, &_c, OP_MATH_MINUS);
     puts("\na(null) - b(num) = ");
 
     err_display_last(&e);
 
-    var_init(&_a, "a", T_BOOL);
-    var_init(&_b, "b", T_NUM);
+    var_init(&_a, "a", str_hash("a"), T_BOOL);
+    var_init(&_b, "b", str_hash("b"), T_NUM);
 
     var_op(_a, _b, &_c, OP_LOG_AND);
     puts("\na(bool) and b(num) = ");
@@ -87,10 +90,10 @@ void test_node(void) {
     ec_obj.variables = NULL;
     ec_tmp.variables = NULL;
 
-    var_init_loc(&a, "a", T_NUM);
-    var_init_loc(&b, NULL, T_NUM);
-    var_init_loc(&c, NULL, T_NUM);
-    var_init_loc(&r, NULL, T_NULL);
+    var_init_loc(&a, "a", str_hash("a"), T_NUM);
+    var_init_loc(&b, NULL, 0, T_NUM);
+    var_init_loc(&c, NULL, 0, T_NUM);
+    var_init_loc(&r, NULL, 0, T_NULL);
 
     a.value.v_num = 4.0;
     b.value.v_num = 2.0;

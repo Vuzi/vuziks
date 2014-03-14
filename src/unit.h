@@ -2,9 +2,11 @@
 #define _H_UNIT
 
 #include "linkedList/linkedList.h"
+#include "err/err.h"
 
 typedef struct s_Unit {
     Linked_list *operations;
+    Linked_list *args;
 } Unit;
 
 typedef struct s_Unit_conditional {
@@ -26,5 +28,7 @@ typedef struct s_Exec_context {
     struct s_Exec_context* caller_context;  // Contexte de la variable l'ayant appelé
     struct s_Variable* caller;              // Variable l'ayant appelé
 } Exec_context;
+
+#include "variable.h"
 
 #endif // _H_UNIT

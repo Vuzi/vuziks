@@ -16,7 +16,7 @@ return_code op_eval(Operation *op, Exec_context *ec_obj, Exec_context *ec_tmp, V
     ec_void.caller = NULL;
 
     // Valeur de retour initialisée à NULL
-    var_init_loc(*r, NULL, T_NULL);
+    var_init_loc(*r, NULL, 0, T_NULL);
 
     if(op) {
         // Evaluation des branches
@@ -54,11 +54,17 @@ return_code op_eval(Operation *op, Exec_context *ec_obj, Exec_context *ec_tmp, V
             return var_op(var_r[0], var_r[1], r, op->type);
         } else if(op->type & OP_UNIT_TYPE) { // Type d'opération relevant des appels d'unit
             return RC_OK; // A gérer / faire
-        } else if(op->type == OP_DEC) { // Déclaration de variable
-            return RC_OK; // A gérer / faire
+        } else if(op->type == OP_DEC_ATTR) { // Déclaration d'attribut
+            if((rc = var_init(r, op->info.val, op->info.val_h, T_NULL)) == RC_OK)
+                linked_list_append(&(ec_tmp->variables), (void*)*r);
+            return rc;
+        } else if(op->type == OP_DEC_VAR) { // Déclaration de variable
+            if((rc = var_init(r, op->info.val, op->info.val_h, T_NULL)) == RC_OK)
+                linked_list_append(&(ec_obj->variables), (void*)*r);
+            return rc;
         } else if(op->type == OP_ACCES) { // Accès de variable
-            if(((var_r[0] = var_search(ec_tmp->variables, op->info.val, op->info.val_h))) ||
-               ((var_r[0] = var_search(ec_obj->variables, op->info.val, op->info.val_h))))
+            if(((var_r[0] = var_search(ec_tmp, op->info.val, op->info.val_h))) ||
+               ((var_r[0] = var_search(ec_obj, op->info.val, op->info.val_h))))
                 *r = var_r[0];
             else
                 (*r)->type = T_NONEXISTENT;

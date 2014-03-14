@@ -30,11 +30,11 @@ const char* language_type_debug(language_type l) {
 }
 
 // Initialisation
-return_code var_init_loc(Variable *a, const char* name, language_type type) {
+return_code var_init_loc(Variable *a, const char* name, hash_t name_h, language_type type) {
 
     if(a) {
-        a->name = (name ? str_copy(name) : NULL);
-        a->name_h = (name ? str_hash(name) : 0);
+        a->name = name;
+        a->name_h = name_h;
         a->type = type;
 
         switch(type) {
@@ -62,12 +62,12 @@ return_code var_init_loc(Variable *a, const char* name, language_type type) {
     }
 }
 
-return_code var_init(Variable **a, const char* name, language_type type) {
+return_code var_init(Variable **a, const char* name, hash_t name_h, language_type type) {
 
     if(!(*a)) {
         (*a) = (Variable*)malloc(sizeof(Variable));
     }
-    return var_init_loc(*a, name, type);
+    return var_init_loc(*a, name, name_h, type);
 
 }
 
@@ -94,7 +94,7 @@ return_code var_op_pow(Variable *a, Variable *b, Variable *r) {
 }
 
 return_code var_op_div(Variable *a, Variable *b, Variable *r) {
-    if(a->value.v_num != 0) {
+    if(a->value.v_num != .0) {
         r->value.v_num = a->value.v_num / b->value.v_num;
         return RC_OK;
     } else {
@@ -104,7 +104,7 @@ return_code var_op_div(Variable *a, Variable *b, Variable *r) {
 }
 
 return_code var_op_intdiv(Variable *a, Variable *b, Variable *r) {
-    if(a->value.v_num != 0) {
+    if(a->value.v_num != .0) {
         r->value.v_num = integer_division(a->value.v_num, b->value.v_num);
         return RC_OK;
     } else {
@@ -249,7 +249,7 @@ return_code var_op_equal(Variable *a, Variable *b, Variable *r, operation_type t
     return RC_OK;
 }
 
-return_code var_op_type(Variable *a, Variable *b, Variable *r, operation_type type) {
+return_code var_op_type(Variable *a, Variable *b, Variable *r) {
 
     r->type = T_BOOL;
     r->value.v_bool = (a->type == b->type ? 1 : 0);
@@ -282,7 +282,7 @@ return_code var_op_or_and(Variable *a, Variable *b, Variable *r, operation_type 
     return RC_OK;
 }
 
-return_code var_op_not(Variable *a, Variable *b, Variable *r) {
+return_code var_op_not(Variable *a, Variable *r) {
 
     if(a->type == T_BOOL) {
 
@@ -310,12 +310,12 @@ return_code var_op_log(Variable *a, Variable *b, Variable *r, operation_type typ
         case OP_LOG_DIF :
             return var_op_equal(a, b, r, type);
         case OP_LOG_TYPE :
-            return var_op_type(a, b, r, type);
+            return var_op_type(a, b, r);
         case OP_LOG_AND :
         case OP_LOG_OR :
             return var_op_or_and(a, b, r, type);
         case OP_LOG_NOT :
-            return var_op_not(a, b, r);
+            return var_op_not(a, r);
         default :
             err_add(E_CRITICAL, UNKOWN_TYPE, "Logical comparison or operation with an unknown type : the operation type cannot be resolved as a known type");
             return RC_ERROR;
@@ -353,12 +353,19 @@ return_code var_op(Variable *a, Variable *b, Variable **r, operation_type type) 
     }
 }
 
-Variable* var_search(Linked_list *ll, const char* name, hash_t name_h) {
-    while(ll) {
-        if(( ((Variable*)ll->value)->name_h == name_h ) && !strcmp(((Variable*)ll->value)->name, name))
-            return (Variable*)ll->value;
-        else
-            ll = ll->next;
+Variable* var_search(Exec_context *ec, const char* name, hash_t name_h) {
+
+    Linked_list *ll;
+
+    while(ec) {
+        ll = ec->variables;
+        while(ll) {
+            if(( ((Variable*)ll->value)->name_h == name_h ) && !strcmp(((Variable*)ll->value)->name, name))
+                return (Variable*)ll->value;
+            else
+                ll = ll->next;
+        }
+        ec = ec->caller_context;
     }
 
     return NULL;

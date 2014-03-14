@@ -3,8 +3,8 @@
 Error e;
 
 // Affichage d'erreur
-void err_display_last(Error *e) {
-    printf("#error\n  %s\n  level %d and type %d\n", e->msg, e->level, e->type);
+void err_display_last(Error *_e) {
+    printf("#error\n  %s\n  level %d and type %d\n", _e->msg, _e->level, _e->type);
 }
 
 // Ajout d'erreur

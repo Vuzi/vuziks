@@ -32,7 +32,7 @@ typedef union u_Language_value {
 
 // Variable en mémoire
 typedef struct s_Variale {
-	char* name;            // Nom de la variable (en toute lettre)
+	const char* name;            // Nom de la variable (en toute lettre)
 	hash_t name_h;         // Hashage du nom de la variable, pour la trouver plus vite
 	language_type type;    // Type de la variable
 	Language_value value;  // Valeur de la variable
@@ -46,8 +46,8 @@ void debug_pr_lvl(void);
 void var_dump(Variable *v);
 const char* language_type_debug(language_type l);
 
-return_code var_init_loc(Variable *a, const char* name, language_type type);
-return_code var_init(Variable **a, const char* name, language_type type);
+return_code var_init_loc(Variable *a, const char* name, hash_t name_h, language_type type);
+return_code var_init(Variable **a, const char* name, hash_t name_h, language_type type);
 
 return_code var_op(Variable *a, Variable *b, Variable **r, operation_type type);
 return_code var_op_add(Variable *a, Variable *b, Variable *r);
@@ -63,11 +63,11 @@ return_code var_op_un_m(Variable *a, Variable *r);
 return_code var_op_math_unary(Variable *a,Variable *r, operation_type type);
 return_code var_op_comp(Variable *a, Variable *b, Variable *r, operation_type type);
 return_code var_op_equal(Variable *a, Variable *b, Variable *r, operation_type type);
-return_code var_op_type(Variable *a, Variable *b, Variable *r, operation_type type);
+return_code var_op_type(Variable *a, Variable *b, Variable *r);
 return_code var_op_or_and(Variable *a, Variable *b, Variable *r, operation_type type);
-return_code var_op_not(Variable *a, Variable *b, Variable *r);
+return_code var_op_not(Variable *a, Variable *r);
 return_code var_op_log(Variable *a, Variable *b, Variable *r, operation_type type);
 
-Variable* var_search(Linked_list *ll, const char* name, hash_t name_h);
+Variable* var_search(Exec_context *ec, const char* name, hash_t name_h);
 
 #endif // _H_VARIABLE
