@@ -61,5 +61,6 @@ typedef struct s_Operation {
 // Prototypes
 
 return_code op_eval(Operation *op, Exec_context *ec_obj, Exec_context *ec_tmp, Variable **r) ;
+return_code op_unit(Variable **r, Operation* op, Variable **var_r, Exec_context *ec_obj);
 
 #endif // _H_OPERATION

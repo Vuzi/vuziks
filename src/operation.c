@@ -53,37 +53,7 @@ return_code op_eval(Operation *op, Exec_context *ec_obj, Exec_context *ec_tmp, V
         if(op->type & OP_MATH_OR_LOG_TYPE) { // Type d'opération relevant du traitement de variable
             return var_op(var_r[0], var_r[1], r, op->type);
         } else if(op->type & OP_UNIT_TYPE) { // Type d'opération relevant des appels d'unit
-            if(op->type == OP_UNIT_CALL) {
-                if(var_r[0]->type == T_REF) {
-                    if(op->operations[1]->type != OP_COMMA) {
-                        // Un seul argument
-                        Linked_list *ll = NULL;
-                        linked_list_push(&ll, (void*)var_r[1]);
-                        rc = unit_function(r, ec_obj, ll, &(var_r[0]->value.v_ref));
-                    } else
-                        rc = unit_function(r, ec_obj, var_r[1]->value.v_llist, &(var_r[0]->value.v_ref));
-                    if(rc == RC_OK || rc == RC_RETURN) // Si on quitte avec un return ou RC_OK tout va bien
-                        return RC_OK;
-                    else
-                        return rc;
-                } else {
-                    err_add(E_ERROR, FORBIDDEN_TYPE, "Using a variable with a forbidden type as a function");
-                    return RC_ERROR; // Ajouter le type
-                }
-            } else if(op->type == OP_UNIT_NEW) {
-                if(var_r[0]->type == T_REF) {
-                    (*r)->type = T_OBJECT;
-                    ec_init_loc(&((*r)->value.v_obj));
-                    rc = unit_constructor(&((*r)->value.v_obj), NULL, &(var_r[0]->value.v_ref));
-                } else {
-                    err_add(E_ERROR, FORBIDDEN_TYPE, "Using a variable with a forbidden type as a constructor");
-                    return RC_ERROR; // Ajouter le type
-                }
-            } else {
-                err_add(E_ERROR, OP_IMPOSSIBLE, "Unknown type of unit operation");
-                return RC_ERROR; // Ajouter le type
-            }
-            return RC_OK;
+            return op_unit(r, op, var_r, ec_obj);
         } else if(op->type == OP_DEC_ATTR) { // Déclaration d'attribut
             Variable *new_v = NULL;
             if((rc = var_init(&new_v, op->info.val, op->info.val_h, T_NULL)) == RC_OK)
@@ -146,4 +116,42 @@ return_code op_eval(Operation *op, Exec_context *ec_obj, Exec_context *ec_tmp, V
         }
     } else
         return RC_OK;
+}
+
+
+return_code op_unit(Variable **r, Operation* op, Variable **var_r, Exec_context *ec_obj) {
+    return_code rc = RC_OK;
+
+    if(op->type == OP_UNIT_CALL) {
+        if(var_r[0]->type == T_REF) {
+            if(op->operations[1]->type != OP_COMMA) {
+                // Un seul argument
+                Linked_list *ll = NULL;
+                linked_list_push(&ll, (void*)var_r[1]);
+                rc = unit_function(r, ec_obj, ll, &(var_r[0]->value.v_ref));
+            } else
+                rc = unit_function(r, ec_obj, var_r[1]->value.v_llist, &(var_r[0]->value.v_ref));
+            if(rc == RC_OK || rc == RC_RETURN) // Si on quitte avec un return ou RC_OK tout va bien
+                return RC_OK;
+            else
+                return rc;
+        } else {
+            err_add(E_ERROR, FORBIDDEN_TYPE, "Using a variable with a forbidden type as a function");
+            return RC_ERROR; // Ajouter le type
+        }
+    } else if(op->type == OP_UNIT_NEW) {
+        if(var_r[0]->type == T_REF) {
+            (*r)->type = T_OBJECT;
+            ec_init_loc(&((*r)->value.v_obj));
+            rc = unit_constructor(&((*r)->value.v_obj), NULL, &(var_r[0]->value.v_ref));
+        } else {
+            err_add(E_ERROR, FORBIDDEN_TYPE, "Using a variable with a forbidden type as a constructor");
+            return RC_ERROR; // Ajouter le type
+        }
+    } else {
+        err_add(E_ERROR, OP_IMPOSSIBLE, "Unknown type of unit operation");
+        return RC_ERROR; // Ajouter le type
+    }
+
+    return RC_OK;
 }

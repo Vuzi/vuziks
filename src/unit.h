@@ -12,7 +12,7 @@ typedef struct s_Unit {
 typedef struct s_Unit_conditional {
     Linked_list *operations;
     struct s_Operation *condition;    // Condition
-	Linked_list *next;       // Prochaine condition
+	struct s_Unit_conditional *next;       // Prochaine condition
 } Unit_conditional;
 
 typedef struct s_Unit_loop {
@@ -39,7 +39,7 @@ typedef struct s_Variale Variable;
 
 return_code unit_function(Variable **r, Exec_context *ec_obj, Linked_list *args, Unit *u); // Retourne la valeur de l'évaluation
 return_code unit_constructor(Exec_context *ec_obj, Linked_list *args,  Unit *u); // Retourne le contexte du nouvel objet
-return_code unit_cond_eval(Exec_context *ec_obj, Exec_context *ec_tmp, Unit_conditional *uc); // Evalue la condition
-return_code unit_loop_eval(Exec_context *ec_obj, Exec_context *ec_tmp, Unit_loop *ul); // Evalue la boucle
+return_code unit_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_tmp, Unit_conditional *uc); // Evalue la condition
+return_code unit_loop_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_tmp, Unit_loop *ul); // Evalue la boucle
 
 #endif // _H_UNIT
