@@ -31,4 +31,15 @@ typedef struct s_Exec_context {
 
 #include "variable.h"
 
+// Prototypes
+return_code ec_init_loc(Exec_context *ec);
+return_code ec_init(Exec_context **ec);
+
+typedef struct s_Variale Variable;
+
+return_code unit_function(Variable **r, Exec_context *ec_obj, Linked_list *args, Unit *u); // Retourne la valeur de l'évaluation
+return_code unit_constructor(Exec_context *ec_obj, Linked_list *args,  Unit *u); // Retourne le contexte du nouvel objet
+return_code unit_cond_eval(Exec_context *ec_obj, Exec_context *ec_tmp, Unit_conditional *uc); // Evalue la condition
+return_code unit_loop_eval(Exec_context *ec_obj, Exec_context *ec_tmp, Unit_loop *ul); // Evalue la boucle
+
 #endif // _H_UNIT

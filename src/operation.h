@@ -14,7 +14,7 @@
 #define OP_MATH 0x200
 #define OP_MATH_UNARY 0x400
 #define OP_LOG 0x800
-#define OP_MATH_OR_LOG_TYPE 0x1F00
+#define OP_MATH_OR_LOG_TYPE 0x1E00
 #define OP_VAR 0x2000
 
 // Représente les différents types possibles d'une operation
@@ -34,12 +34,14 @@ typedef enum e_operation_type {
 
 	OP_ASSIGN = 0x2000, OP_VALUE = 0x2001, OP_DEC_VAR = 0x2002, OP_DEC_ATTR = 0x2003, OP_ACCES = 0x2004, OP_CNTX_MODIFIER = 0x2005,
 
-	OP_RETURN = 0x4001, OP_BREAK = 0x4002
+	OP_COMMA = 0x4000, OP_RETURN = 0x4001, OP_BREAK = 0x4002
 
 } operation_type;
 
-
 #include "variable.h"
+
+
+typedef struct s_Variale Variable;
 
 
 typedef struct s_Operation_info {

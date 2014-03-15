@@ -8,22 +8,24 @@
 #include "str/str.h"
 #include "math/math.h"
 #include "unit.h"
-
+#include "operation.h"
 //=====================================================================//
 //                         Langage en lui-même
 
 // Type de donnée possibles
 typedef enum e_language_type {
-	T_NONEXISTENT = -1, T_NULL = 0, T_BOOL = 1, T_NUM = 2, T_ARRAY = 3, T_REF = 4, T_OBJECT = 5
+	T_NONEXISTENT = -1, T_NULL = 0, T_BOOL = 1, T_NUM = 2, T_ARRAY = 3, T_LINKEDLIST = 4, T_REF = 5, T_OBJECT = 6
 } language_type;
+
 
 // Représente une valeur possible (null n'ayant pas de représentation)
 typedef union u_Language_value {
 	char v_bool;
 	double v_num;
 	// Array
-	struct s_Unit v_ref;
-	struct s_Exec_context v_obj;
+	Linked_list *v_llist;
+	Unit v_ref;
+	Exec_context v_obj;
 } Language_value;
 
 
@@ -38,7 +40,6 @@ typedef struct s_Variale {
 	Language_value value;  // Valeur de la variable
 } Variable;
 
-#include "operation.h"
 
 // Prototypes
 

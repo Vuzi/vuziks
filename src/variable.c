@@ -20,6 +20,8 @@ const char* language_type_debug(language_type l) {
             return "boolean";
         case T_ARRAY:
             return "array";
+        case T_LINKEDLIST:
+            return "linked list";
         case T_REF:
             return "reference";
         case T_OBJECT:
@@ -48,6 +50,9 @@ return_code var_init_loc(Variable *a, const char* name, hash_t name_h, language_
                 return RC_OK;
             case T_ARRAY :
                 return RC_OK;
+            case T_LINKEDLIST :
+                a->value.v_llist = NULL;
+                return RC_OK;
             case T_REF :
                 return RC_OK;
             case T_OBJECT :
@@ -57,16 +62,16 @@ return_code var_init_loc(Variable *a, const char* name, hash_t name_h, language_
                 return RC_ERROR;
         }
     } else {
-        err_add(E_CRITICAL, UNKOWN_TYPE, "Creation with an unknown type : the variable type cannot be resolved as a known type");
-        return RC_ERROR;
+        err_add(E_CRITICAL, NULL_VALUE, "Creation of a variable with a NULL value");
+        return RC_CRITICAL;
     }
 }
 
 return_code var_init(Variable **a, const char* name, hash_t name_h, language_type type) {
 
-    if(!(*a)) {
+    if(!(*a))
         (*a) = (Variable*)malloc(sizeof(Variable));
-    }
+
     return var_init_loc(*a, name, name_h, type);
 
 }
@@ -329,8 +334,6 @@ return_code var_op(Variable *a, Variable *b, Variable **r, operation_type type) 
     // opération de ce type passe par là, d'où la présence de et binaire pour éviter de
     // perdre du temps et limiter les traitement
 
-    //var_dump(a); var_dump(b); // debug
-
     if(OP_MATH & type) // Opération mathématique
         return var_op_math(a, b, *r, type);
     else if(OP_MATH_UNARY & type) // Opération mathématique unaire
@@ -393,7 +396,15 @@ void var_dump(Variable *v) {
             case T_NONEXISTENT:
                 puts("non-existent");
                 break;
+            case T_LINKEDLIST:
+                break;
             /* Autres case à faire */
+            case T_REF:
+                puts("reference");
+                break;
+            case T_OBJECT:
+                puts("object");
+                break;
             default :
                 puts("(Error type)");
         }

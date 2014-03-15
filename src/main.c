@@ -9,6 +9,7 @@
 
 void test_variable(void);
 void test_node(void);
+void test_function(void);
 
 void test_variable(void) {
 
@@ -88,7 +89,11 @@ void test_node(void) {
     Variable *result = &r;
 
     ec_obj.variables = NULL;
+    ec_obj.caller = NULL;
+    ec_obj.caller_context = NULL;
     ec_tmp.variables = NULL;
+    ec_tmp.caller = NULL;
+    ec_tmp.caller_context = NULL;
 
     var_init_loc(&a, "a", str_hash("a"), T_NUM);
     var_init_loc(&b, NULL, 0, T_NUM);
@@ -149,10 +154,204 @@ void test_node(void) {
         err_display_last(&e);
 }
 
+void test_function(void) {
+
+    // a = unit(a) { var r = a * 2;
+    //               return r; }
+    //
+    // var c = a(14);
+
+    // -- Debut fonction -- //
+
+    Unit func;
+    Variable arg;
+
+    var_init_loc(&arg, "a", str_hash("a"), T_NULL);
+
+    func.args = NULL;
+    linked_list_append(&func.args, (void*)&arg);
+
+    func.operations = NULL;
+
+    /*
+         var r = a * 2
+         ----------------------
+                =
+              /   \
+           var r   *
+                 /   \
+                a     2
+         ----------------------
+    */
+
+    Variable deux;
+    var_init_loc(&deux, NULL, 0, T_NUM);
+    deux.value.v_num = 2.0;
+
+    Operation func_op1;
+    Operation func_op1_1;
+    Operation func_op1_2;
+    Operation func_op1_2_1;
+    Operation func_op1_2_2;
+
+    func_op1.info.val = NULL;
+    func_op1.info.val_h = 0;
+
+    func_op1.type = OP_ASSIGN;
+    func_op1.operations[0] = &func_op1_1;
+    func_op1.operations[1] = &func_op1_2;
+
+    func_op1_1.type = OP_DEC_VAR;
+
+    func_op1_1.info.val = "r";
+    func_op1_1.info.val_h = str_hash("r");
+
+    func_op1_1.operations[0] = NULL;
+    func_op1_1.operations[1] = NULL;
+
+    func_op1_2.type = OP_MATH_MULT;
+
+    func_op1_2.info.val = NULL;
+    func_op1_2.info.val_h = 0;
+
+    func_op1_2.operations[0] = &func_op1_2_1;
+    func_op1_2.operations[1] = &func_op1_2_2;
+
+    func_op1_2_1.type = OP_ACCES;
+
+    func_op1_2_1.info.val = "a";
+    func_op1_2_1.info.val_h = str_hash("a");
+
+    func_op1_2_1.operations[0] = NULL;
+    func_op1_2_1.operations[1] = NULL;
+
+    func_op1_2_2.type = OP_VALUE;
+    func_op1_2_2.value = &deux;
+
+    func_op1_2_2.info.val = NULL;
+    func_op1_2_2.info.val_h = 0;
+
+    func_op1_2_2.operations[0] = NULL;
+    func_op1_2_2.operations[1] = NULL;
+
+    linked_list_append(&func.operations, (void*)&func_op1);
+
+    /*
+         return r
+         ----------------------
+                return
+                   \
+                   r
+         ----------------------
+    */
+
+    Operation func_op2;
+    Operation func_op2_1;
+
+    func_op2.info.val = NULL;
+    func_op2.info.val_h = 0;
+
+    func_op2.type = OP_RETURN;
+    func_op2.operations[0] = &func_op2_1;
+    func_op2.operations[1] = NULL;
+
+    func_op2_1.type = OP_ACCES;
+    func_op2_1.info.val = "r";
+    func_op2_1.info.val_h = str_hash("r");
+
+    func_op2_1.operations[0] = NULL;
+    func_op2_1.operations[1] = NULL;
+
+    linked_list_append(&func.operations, (void*)&func_op2);
+
+    // -- Ligne de code suivante -- //
+
+    /*   var c = a(14);
+         ----------------------
+                  =
+                /  \
+            var c  appel
+                   / \
+                  a   2
+         ----------------------
+    */
+
+    Operation op1;
+    Operation op1_1;
+    Operation op1_2;
+    Operation op1_2_1;
+    Operation op1_2_2;
+
+    op1.type = OP_ASSIGN;
+
+    op1.operations[0] = &op1_1;
+    op1.operations[1] = &op1_2;
+
+    op1_1.type = OP_DEC_VAR;
+    op1_1.info.val = "c";
+    op1_1.info.val_h = str_hash("c");
+
+    op1_1.operations[0] = NULL;
+    op1_1.operations[1] = NULL;
+
+    op1_2.type = OP_UNIT_CALL;
+    op1_2.info.val = NULL;
+    op1_2.info.val_h = 0;
+
+    op1_2.operations[0] = &op1_2_1;
+    op1_2.operations[1] = &op1_2_2;
+
+    op1_2_1.info.val = "a";
+    op1_2_1.info.val_h = str_hash("a");
+
+    op1_2_1.operations[0] = NULL;
+    op1_2_1.operations[1] = NULL;
+
+    op1_2_1.type = OP_ACCES;
+
+    op1_2_2.info.val = NULL;
+    op1_2_2.info.val_h = 0;
+
+    op1_2_2.type = OP_VALUE;
+    op1_2_2.value = &deux;
+
+    op1_2_2.operations[0] = NULL;
+    op1_2_2.operations[1] = NULL;
+
+    // Contexte d'appel
+    Exec_context ec_objet;
+    Exec_context ec_tmp;
+
+    ec_init_loc(&ec_objet);
+    ec_init_loc(&ec_tmp);
+
+    Variable func_a;
+
+    var_init_loc(&func_a, "a", str_hash("a"), T_REF);
+    func_a.value.v_ref = func;
+
+    linked_list_append(&(ec_tmp.variables), (void*)&func_a);
+
+    Variable r;
+    Variable *r_ = &r;
+
+    // Appel
+    puts("Initialization ok");
+
+    if(op_eval(&op1, &ec_objet, &ec_tmp, &r_) != RC_OK)
+        err_display_last(&e);
+
+    var_dump((Variable*)(ec_tmp.variables->value));
+
+    puts("Eval ok");
+
+}
+
 int main(void) {
 
     //test_variable();
-    test_node();
+    //test_node();
+    test_function();
 
     return 0;
 }
