@@ -29,13 +29,16 @@ typedef struct s_Exec_context {
     struct s_Variable* caller;              // Variable l'ayant appelé
 } Exec_context;
 
-#include "variable.h"
+#include "variableOp.h"
 
 // Prototypes
-return_code ec_init_loc(Exec_context *ec);
-return_code ec_init(Exec_context **ec);
 
 typedef struct s_Variale Variable;
+
+return_code ec_init_loc(Exec_context *ec);
+return_code ec_init(Exec_context **ec);
+return_code ec_add_var(Exec_context* ec, char* name, hash_t name_h, Variable **r);
+return_code ec_empty(Exec_context *ec);
 
 return_code unit_function(Variable **r, Exec_context *ec_obj, Linked_list *args, Unit *u); // Retourne la valeur de l'évaluation
 return_code unit_constructor(Exec_context *ec_obj, Linked_list *args,  Unit *u); // Retourne le contexte du nouvel objet

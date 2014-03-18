@@ -2,7 +2,7 @@
 
 static return_code op_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_tmp, struct s_Operation *op, char *go);
 
-
+// Initialise un ec
 return_code ec_init_loc(Exec_context *ec) {
     if(ec) {
         ec->caller = NULL;
@@ -15,6 +15,7 @@ return_code ec_init_loc(Exec_context *ec) {
     }
 }
 
+// Alloue et initialisez un ec
 return_code ec_init(Exec_context **ec) {
     if(!(*ec))
         *ec = (Exec_context*)malloc(sizeof(Exec_context));
@@ -22,26 +23,64 @@ return_code ec_init(Exec_context **ec) {
     return ec_init_loc(*ec);
 }
 
-return_code unit_function(Variable **r, Exec_context *ec_obj, Linked_list *args, Unit *u) {
-    Exec_context ec_tmp;
-    ec_init_loc(&ec_tmp);
+// Vide un ec
+return_code ec_empty(Exec_context *ec) {
+    Linked_list *tmp = NULL;
 
+    while(ec->variables) {
+        tmp = ec->variables->next;
+
+        // Suppression valeur et chainon
+        var_delete((Variable*)(ec->variables->value));
+        free(ec->variables);
+
+        ec->variables = tmp;
+    }
+
+    return RC_OK;
+}
+
+// Ajoute une variable dans un ec
+return_code ec_add_var(Exec_context* ec, char* name, hash_t name_h, Variable **r) {
+
+    Variable *new_v = NULL;
     return_code rc = RC_OK;
 
-    if(u && (*r) && ec_obj) {
+    rc = var_init(&new_v, name, name_h, T_NULL);
 
+    if(rc == RC_OK || rc == RC_WARNING) {
+        linked_list_push(&(ec->variables), (void*)new_v);
+        *r = new_v;
+    } else
+        var_delete(new_v);
+
+    return rc;
+}
+
+// Unit comme une fonction
+return_code unit_function(Variable **r, Exec_context *ec_obj, Linked_list *args, Unit *u) {
+    Exec_context ec_tmp;
+    return_code rc = RC_OK;
+    Variable *r_save = *r;
+
+    ec_init_loc(&ec_tmp);
+
+    if(u && (*r) && ec_obj) {
         Linked_list* ll = u->args;
+        Variable *v = NULL;
 
         // Arguments
         while(ll) {
-            // Copie de la valeur
-            Variable* v = (Variable*)malloc(sizeof(Variable));
-            memcpy(v, ll->value, sizeof(Variable));
 
-            // Si argument
             if(args) {
-                v->type = ((Variable*)(args->value))->type;
-                v->value = ((Variable*)(args->value))->value;
+                // Si argument envoyé (déjà copié)
+                v = (Variable*)args->value;
+                v->name = ((Variable*)ll->value)->name;
+                v->name_h = ((Variable*)ll->value)->name_h;
+                args = args->next;
+            } else {
+                // Sinon celui par défaut (en copie)
+                v = var_copy((Variable*)ll->value);
             }
 
             // Ajout
@@ -53,7 +92,7 @@ return_code unit_function(Variable **r, Exec_context *ec_obj, Linked_list *args,
 
         ll = u->operations;
 
-        // Evaluation
+        // Evaluation (pour chaque opération)
         while(ll) {
             switch((rc = op_eval((Operation*)ll->value, ec_obj, &ec_tmp, r)) ) {
                 case RC_WARNING :
@@ -63,14 +102,25 @@ return_code unit_function(Variable **r, Exec_context *ec_obj, Linked_list *args,
                     break;
                 case RC_CRITICAL :
                 case RC_ERROR :
+                    var_delete(*r);
                 case RC_RETURN :
-                    linked_list_del(ec_tmp.variables, free);
+                    ec_empty(&ec_tmp);
                     return rc;
+                default :
+                    err_add(E_CRITICAL, NULL_VALUE, "Unknown type of operation return");
+                    var_delete(*r);
+                    ec_empty(&ec_tmp);
+                    return RC_CRITICAL;
             }
+            var_delete(*r);
+
             ll = ll->next;
+            *r = r_save; // On restaure r pour ne pas écrire n'importe où
         }
 
-        linked_list_del(ec_tmp.variables, free);
+        var_init_loc(*r, NULL, 0, T_NULL);
+        ec_empty(&ec_tmp);
+
         return RC_OK;
 
     } else {
@@ -79,14 +129,24 @@ return_code unit_function(Variable **r, Exec_context *ec_obj, Linked_list *args,
     }
 }
 
+// Unit comme un constructeur
 return_code unit_constructor(Exec_context *ec_obj, Linked_list *args,  Unit *u) {
+    return_code rc = RC_OK;
     Variable r; // Valeur de retour ignorée
     Variable *r_link = &r;
     var_init_loc(r_link, NULL, 0, T_NULL);
+    r_link->deletable = 0;
 
-    return unit_function(&r_link, ec_obj, args, u);
+    rc = unit_function(&r_link, ec_obj, args, u);
+    var_delete(r_link);
+
+    return rc;
 }
 
+// A REFAIRE A PARTIR DE CETTE LIGNE
+// ===============================================================================================================================
+
+// Evaluation d'unit conditonnel
 return_code unit_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_tmp, Unit_conditional *uc) {
     return_code rc = RC_OK;
 
@@ -111,6 +171,7 @@ return_code unit_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_
                                     case RC_CRITICAL :
                                     case RC_ERROR :
                                     case RC_RETURN :
+                                    default :
                                         return rc;
                                 }
                                 ll = ll->next;
@@ -126,6 +187,7 @@ return_code unit_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_
                 case RC_CRITICAL :
                 case RC_ERROR :
                 case RC_RETURN :
+                default :
                     return rc;
             }
         }
@@ -134,6 +196,7 @@ return_code unit_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_
     return RC_OK;
 }
 
+// Evaluation condition
 static return_code op_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_tmp, struct s_Operation *op, char *go) {
     return_code rc = RC_OK;
 
@@ -164,6 +227,7 @@ static return_code op_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context
 
 }
 
+// Evaluation loop
 return_code unit_loop_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_tmp, Unit_loop *ul) {
     return_code rc = RC_OK;
     char go = 0;
@@ -232,6 +296,7 @@ return_code unit_loop_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_
                             case RC_CRITICAL :
                             case RC_ERROR :
                             case RC_RETURN :
+                            default :
                                 return rc;
                         }
                     }
@@ -257,3 +322,4 @@ return_code unit_loop_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_
     }
     return RC_OK;
 }
+

@@ -44,6 +44,10 @@
 		<Linker>
 			<Add option="-s" />
 		</Linker>
+		<Unit filename="debug.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="debug.h" />
 		<Unit filename="err/err.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -79,6 +83,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="variable.h" />
+		<Unit filename="variableOp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="variableOp.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />

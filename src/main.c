@@ -1,11 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "variable.h"
+#include "variableOp.h"
 #include "operation.h"
 #include "unit.h"
+#include "debug.h"
 
 #include "hash/hash.h"
+
+/*
+    A faire :
+     - Plus de tests unitaires
+     - Faire les boucles et conditions
+*/
 
 void test_variable(void);
 void test_node(void);
@@ -196,6 +203,7 @@ void test_function(void) {
 
     func_op1.info.val = NULL;
     func_op1.info.val_h = 0;
+    func_op1.value = NULL;
 
     func_op1.type = OP_ASSIGN;
     func_op1.operations[0] = &func_op1_1;
@@ -205,6 +213,7 @@ void test_function(void) {
 
     func_op1_1.info.val = "r";
     func_op1_1.info.val_h = str_hash("r");
+    func_op1_1.value = NULL;
 
     func_op1_1.operations[0] = NULL;
     func_op1_1.operations[1] = NULL;
@@ -213,6 +222,7 @@ void test_function(void) {
 
     func_op1_2.info.val = NULL;
     func_op1_2.info.val_h = 0;
+    func_op1_2.value = NULL;
 
     func_op1_2.operations[0] = &func_op1_2_1;
     func_op1_2.operations[1] = &func_op1_2_2;
@@ -221,6 +231,7 @@ void test_function(void) {
 
     func_op1_2_1.info.val = "a";
     func_op1_2_1.info.val_h = str_hash("a");
+    func_op1_2_1.value = NULL;
 
     func_op1_2_1.operations[0] = NULL;
     func_op1_2_1.operations[1] = NULL;
@@ -250,6 +261,7 @@ void test_function(void) {
 
     func_op2.info.val = NULL;
     func_op2.info.val_h = 0;
+    func_op2.value = NULL;
 
     func_op2.type = OP_RETURN;
     func_op2.operations[0] = &func_op2_1;
@@ -258,6 +270,7 @@ void test_function(void) {
     func_op2_1.type = OP_ACCES;
     func_op2_1.info.val = "r";
     func_op2_1.info.val_h = str_hash("r");
+    func_op2_1.value = NULL;
 
     func_op2_1.operations[0] = NULL;
     func_op2_1.operations[1] = NULL;
@@ -287,9 +300,14 @@ void test_function(void) {
     op1.operations[0] = &op1_1;
     op1.operations[1] = &op1_2;
 
+    op1.info.val = NULL;
+    op1.info.val_h = 0;
+    op1.value = NULL;
+
     op1_1.type = OP_DEC_VAR;
     op1_1.info.val = "c";
     op1_1.info.val_h = str_hash("c");
+    op1_1.value = NULL;
 
     op1_1.operations[0] = NULL;
     op1_1.operations[1] = NULL;
@@ -297,12 +315,14 @@ void test_function(void) {
     op1_2.type = OP_UNIT_CALL;
     op1_2.info.val = NULL;
     op1_2.info.val_h = 0;
+    op1_2.value = NULL;
 
     op1_2.operations[0] = &op1_2_1;
     op1_2.operations[1] = &op1_2_2;
 
     op1_2_1.info.val = "a";
     op1_2_1.info.val_h = str_hash("a");
+    op1_2_1.value = NULL;
 
     op1_2_1.operations[0] = NULL;
     op1_2_1.operations[1] = NULL;
@@ -311,6 +331,7 @@ void test_function(void) {
 
     op1_2_2.info.val = NULL;
     op1_2_2.info.val_h = 0;
+    op1_2_2.value = NULL;
 
     op1_2_2.type = OP_VALUE;
     op1_2_2.value = &deux;
@@ -327,8 +348,8 @@ void test_function(void) {
 
     Variable func_a;
 
-    var_init_loc(&func_a, "a", str_hash("a"), T_REF);
-    func_a.value.v_ref = func;
+    var_init_loc(&func_a, "a", str_hash("a"), T_FUNCTION);
+    func_a.value.v_func = &func;
 
     linked_list_append(&(ec_tmp.variables), (void*)&func_a);
 
@@ -337,6 +358,16 @@ void test_function(void) {
 
     // Appel
     puts("Initialization ok");
+
+    puts("\nmain :");
+
+    op_dump(&op1);
+
+    puts("\nfunction a :");
+
+    unit_dump(&func);
+
+    puts("\nValeur execution :");
 
     if(op_eval(&op1, &ec_objet, &ec_tmp, &r_) != RC_OK)
         err_display_last(&e);

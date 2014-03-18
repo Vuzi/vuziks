@@ -30,15 +30,15 @@ typedef enum e_operation_type {
 	OP_LOG_GT = 0x801, OP_LOG_GE = 0x802, OP_LOG_LT = 0x803, OP_LOG_LE = 0x804, OP_LOG_EQ = 0x805, OP_LOG_DIF = 0x806, OP_LOG_TYPE = 0x807,
 	OP_LOG_NOT = 0x808, OP_LOG_AND = 0x809, OP_LOG_OR = 0x810,
 
-    OP_PARENTH = 0x1002,
+    OP_REF_GET = 0x1002, OP_REF_ACCESS = 0x1003, OP_ASSIGN = 0x1004,
 
-	OP_ASSIGN = 0x2000, OP_VALUE = 0x2001, OP_DEC_VAR = 0x2002, OP_DEC_ATTR = 0x2003, OP_ACCES = 0x2004, OP_CNTX_MODIFIER = 0x2005,
+    OP_VALUE = 0x2000, OP_DEC_VAR = 0x2001, OP_DEC_ATTR = 0x2002, OP_ACCES = 0x2003, OP_CNTX_MODIFIER = 0x2004,
 
 	OP_COMMA = 0x4000, OP_RETURN = 0x4001, OP_BREAK = 0x4002
 
 } operation_type;
 
-#include "variable.h"
+#include "variableOp.h"
 
 
 typedef struct s_Variale Variable;
