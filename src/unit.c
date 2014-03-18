@@ -102,20 +102,19 @@ return_code unit_function(Variable **r, Exec_context *ec_obj, Linked_list *args,
                     break;
                 case RC_CRITICAL :
                 case RC_ERROR :
-                    var_delete(*r);
+                    var_delete(*r); *r = r_save;
                 case RC_RETURN :
                     ec_empty(&ec_tmp);
                     return rc;
                 default :
                     err_add(E_CRITICAL, NULL_VALUE, "Unknown type of operation return");
-                    var_delete(*r);
+                    var_delete(*r); *r = r_save;
                     ec_empty(&ec_tmp);
                     return RC_CRITICAL;
             }
-            var_delete(*r);
+            var_delete(*r); *r = r_save;
 
             ll = ll->next;
-            *r = r_save; // On restaure r pour ne pas écrire n'importe où
         }
 
         var_init_loc(*r, NULL, 0, T_NULL);
@@ -143,26 +142,30 @@ return_code unit_constructor(Exec_context *ec_obj, Linked_list *args,  Unit *u) 
     return rc;
 }
 
-// A REFAIRE A PARTIR DE CETTE LIGNE
-// ===============================================================================================================================
-
 // Evaluation d'unit conditonnel
-return_code unit_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_tmp, Unit_conditional *uc) {
+return_code unit_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_tmp_source, Unit_conditional *uc) {
+    Exec_context ec_tmp;
     return_code rc = RC_OK;
+    Variable *r_save = *r;
+
+    ec_init_loc(&ec_tmp);
+    ec_tmp.caller_context = ec_tmp_source;
 
     while(uc) {
         // Si on a une condition
         if(uc->condition) {
-            switch((rc = op_eval(uc->condition, ec_obj, ec_tmp, r))) {
+            switch((rc = op_eval(uc->condition, ec_obj, &ec_tmp, r))) {
                 case RC_WARNING :
                     err_display_last(&e);
                 case RC_OK :
+                    var_delete(*r); *r = r_save;
+
                     if((*r)->type == T_BOOL) {
                         // Si condition valide
                         if((*r)->value.v_bool) {
                             Linked_list *ll = uc->operations;
                             while(ll) {
-                                switch((rc = op_eval((Operation*)ll->value, ec_obj, ec_tmp, r)) ) {
+                                switch((rc = op_eval((Operation*)ll->value, ec_obj, &ec_tmp, r)) ) {
                                     case RC_WARNING :
                                         err_display_last(&e);
                                     case RC_OK :
@@ -172,8 +175,12 @@ return_code unit_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_
                                     case RC_ERROR :
                                     case RC_RETURN :
                                     default :
+                                        var_delete(*r); *r = r_save;
+                                        ec_empty(&ec_tmp);
                                         return rc;
                                 }
+                                var_delete(*r); *r = r_save; // On restaure r pour ne pas écrire n'importe où
+
                                 ll = ll->next;
                             }
                             return RC_OK;
@@ -182,18 +189,20 @@ return_code unit_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_
                         err_add(E_ERROR, FORBIDDEN_TYPE, "Only boolean value can be used in a condition");
                         return E_ERROR;
                     }
-                    break;
                 case RC_BREAK :
                 case RC_CRITICAL :
                 case RC_ERROR :
                 case RC_RETURN :
                 default :
+                    var_delete(*r); *r = r_save; // On restaure r pour ne pas écrire n'importe où
+                    ec_empty(&ec_tmp);
                     return rc;
             }
         }
         uc = uc->next;
     }
-    return RC_OK;
+
+    return rc;
 }
 
 // Evaluation condition
@@ -228,15 +237,20 @@ static return_code op_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context
 }
 
 // Evaluation loop
-return_code unit_loop_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_tmp, Unit_loop *ul) {
+return_code unit_loop_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_tmp_source, Unit_loop *ul) {
+    Exec_context ec_tmp;
     return_code rc = RC_OK;
+    Variable *r_save = *r;
     char go = 0;
+
+    ec_init_loc(&ec_tmp);
+    ec_tmp.caller_context = ec_tmp_source;
 
     if(ul) {
         do {
             // Action de début de boucle
             if(ul->start_action) {
-                switch((rc = op_eval(ul->start_action, ec_obj, ec_tmp, r))) {
+                switch((rc = op_eval(ul->start_action, ec_obj, &ec_tmp, r))) {
                     case RC_WARNING :
                         err_display_last(&e);
                     case RC_OK :
@@ -245,16 +259,59 @@ return_code unit_loop_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_
                     case RC_CRITICAL :
                     case RC_ERROR :
                     case RC_RETURN :
+                        var_delete(*r); *r = r_save;
+                        ec_empty(&ec_tmp);
                         return rc;
                 }
+                var_delete(*r); *r = r_save;
             }
 
             // Existe-il une condition (au moins) ?
             if(ul->start_condition || ul->end_condition) {
                 // Condition au lancement de la boucle
                 if(ul->start_condition) {
-                     switch((rc = op_cond_eval(r, ec_obj, ec_tmp, ul->start_condition, &go))) {
+                     switch((rc = op_cond_eval(r, ec_obj, &ec_tmp, ul->start_condition, &go))) {
                         case RC_WARNING :
+                        case RC_OK :
+                            if(go)
+                                break;
+                        case RC_BREAK :
+                        case RC_CRITICAL :
+                        case RC_ERROR :
+                        case RC_RETURN :
+                        default :
+                            var_delete(*r); *r = r_save;
+                            ec_empty(&ec_tmp);
+                            return rc;
+                     }
+                     var_delete(*r); *r = r_save;
+                }
+
+                // Evaluation
+                Linked_list *ll = ul->operations;
+                while(ll) {
+                    switch((rc = op_eval((Operation*)ll->value, ec_obj, &ec_tmp, r)) ) {
+                        case RC_WARNING :
+                            err_display_last(&e);
+                        case RC_OK :
+                            break;
+                        case RC_BREAK :
+                        case RC_CRITICAL :
+                        case RC_ERROR :
+                        case RC_RETURN :
+                            ec_empty(&ec_tmp);
+                            var_delete(*r); *r = r_save;
+                            return rc;
+                    }
+                    var_delete(*r); *r = r_save;
+                    ll = ll->next;
+                }
+
+                // Opération de fin de boucle
+                if(ul->end_action) {
+                    switch((rc = op_eval(ul->end_action, ec_obj, &ec_tmp, r))) {
+                        case RC_WARNING :
+                            err_display_last(&e);
                         case RC_OK :
                             break;
                         case RC_BREAK :
@@ -262,63 +319,34 @@ return_code unit_loop_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_
                         case RC_ERROR :
                         case RC_RETURN :
                         default :
+                            ec_empty(&ec_tmp);
+                            var_delete(*r); *r = r_save;
+                            return rc;
+                    }
+                    var_delete(*r); *r = r_save;
+                }
+
+                // Condition de fin de boucle
+                if(ul->end_condition) {
+                     switch((rc = op_cond_eval(r, ec_obj, &ec_tmp, ul->end_condition, &go))) {
+                        case RC_WARNING :
+                        case RC_OK :
+                            if(go)
+                                break;
+                        case RC_BREAK :
+                        case RC_CRITICAL :
+                        case RC_ERROR :
+                        case RC_RETURN :
+                        default :
+                            ec_empty(&ec_tmp);
+                            var_delete(*r); *r = r_save;
                             return rc;
                      }
-                } else
-                    go = 1;
-
-                if(go) {
-                    // Evaluation
-                    Linked_list *ll = ul->operations;
-                    while(ll) {
-                        switch((rc = op_eval((Operation*)ll->value, ec_obj, ec_tmp, r)) ) {
-                            case RC_WARNING :
-                                err_display_last(&e);
-                            case RC_OK :
-                                break;
-                            case RC_BREAK :
-                            case RC_CRITICAL :
-                            case RC_ERROR :
-                            case RC_RETURN :
-                                return rc;
-                        }
-                        ll = ll->next;
-                    }
-
-                    // Opération de fin de boucle
-                    if(ul->end_action) {
-                        switch((rc = op_eval(ul->end_action, ec_obj, ec_tmp, r))) {
-                            case RC_WARNING :
-                                err_display_last(&e);
-                            case RC_OK :
-                                break;
-                            case RC_BREAK :
-                            case RC_CRITICAL :
-                            case RC_ERROR :
-                            case RC_RETURN :
-                            default :
-                                return rc;
-                        }
-                    }
-
-                    // Condition de fin de boucle
-                    if(ul->end_condition) {
-                         switch((rc = op_cond_eval(r, ec_obj, ec_tmp, ul->end_condition, &go))) {
-                            case RC_WARNING :
-                            case RC_OK :
-                                break;
-                            case RC_BREAK :
-                            case RC_CRITICAL :
-                            case RC_ERROR :
-                            case RC_RETURN :
-                            default :
-                                return rc;
-                         }
-                    } else
-                        go = 1;
+                    var_delete(*r); *r = r_save;
                 }
+
             }
-        } while(go);
+        } while(1);
     }
     return RC_OK;
 }

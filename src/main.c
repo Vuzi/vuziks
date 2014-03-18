@@ -9,9 +9,17 @@
 #include "hash/hash.h"
 
 /*
-    A faire :
-     - Plus de tests unitaires
-     - Faire les boucles et conditions
+    A faire, urgent :
+
+     - Ajouter un champ numéro aux variables (nombre de liens)
+     - Faire des fonctions "intelligentes" de suppression de variables
+     - Faire des fonctions "intelligentes" de suppression de contexte (Ou de vidage)
+     - Faire des fonctions intelligentes de copies de variables
+     - Faire des fonctions de copie de variable
+     - Nouveau type : référence (Pas le même que function)
+     - Opérateur '@' pour récupérer une référence (Uniquement sur variable nommée)
+     - Opérateur '*' d'accès (Uniquement sur variable nommée de type référence)
+     - Refaire en étant plus attentif à la mémoire ( !!! )
 */
 
 void test_variable(void);
