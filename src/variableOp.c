@@ -175,6 +175,9 @@ return_code var_op_equal(Variable *a, Variable *b, Variable *r, operation_type t
             case T_NULL:
                 r->value.v_bool = (a == b ? 1 : 0);
                 break;
+            case T_NUM:
+                r->value.v_bool = (a->value.v_num == b->value.v_num ? 1 : 0);
+                break;
             case T_BOOL:
                 r->value.v_bool = (a->value.v_bool == b->value.v_bool ? 1 : 0);
                 break;
@@ -182,10 +185,13 @@ return_code var_op_equal(Variable *a, Variable *b, Variable *r, operation_type t
                 r->value.v_bool = (a/*->value.v_array*/ == b/*->value.v_array*/ ? 1 : 0);
                 break;
             case T_REF :
-                r->value.v_bool = (a/*->value.v_ref*/ == b/*->value.v_ref*/ ? 1 : 0);
+                r->value.v_bool = (a->value.v_ref == b->value.v_ref ? 1 : 0);
+                break;
+            case T_FUNCTION :
+                r->value.v_bool = (a->value.v_func == b->value.v_func ? 1 : 0);
                 break;
             case T_OBJECT :
-                r->value.v_bool = (a/*->value.v_object*/ == b/*->value.v_object*/ ? 1 : 0);
+                r->value.v_bool = (&(a->value.v_obj) == &(b->value.v_obj) ? 1 : 0);
                 break;
             default :
                 err_add(E_CRITICAL, UNKOWN_TYPE, "Equality comparison with an unknown variable type : the type compared cannot be resolved as a known variable type");
@@ -319,8 +325,10 @@ return_code var_op_ref_access(Variable *a, Variable **r) {
             *r = a->value.v_ref;
             // On ajoute une nouvelle référence sur l'objet
             (*r)->n_links++;
+
+            return RC_OK;
         } else {
-            err_add(E_ERROR, FORBIDDEN_TYPE, "Cannot dereference a non-reference variable");
+            err_add(E_ERROR, NULL_VALUE, "Cannot dereference a null reference");
             return RC_ERROR;
         }
     } else {
@@ -328,6 +336,22 @@ return_code var_op_ref_access(Variable *a, Variable **r) {
         return RC_ERROR;
     }
 
+}
+
+return_code var_op_attr_access(Variable *a, const char* name, hash_t name_h, Variable **r) {
+    if(a->type == T_OBJECT) {
+        Variable *v = var_search(&a->value.v_obj, name, name_h);
+        if(v) {
+            *r = v;
+            return RC_OK;
+        } else {
+            err_add(E_ERROR, CANT_ACCESS, "Cannot access member variable '%s' (hash : %lu)", name, (long unsigned)name_h);
+            return RC_ERROR;
+        }
+    } else {
+        err_add(E_ERROR, FORBIDDEN_TYPE, "Cannot access member variable using a non-objet variable");
+        return RC_ERROR;
+    }
 }
 
 // Assigne b dans a, sans modifier l'adresse de a (correspond au a = b )
@@ -338,7 +362,6 @@ return_code var_op_assign(Variable *a, Variable *b, Variable **r) {
         // On vérifie si le type est affectable
         if(b->type != T_NONEXISTENT) {
             *r = a;
-            a->n_links++; // Lien en plus car renvoyé
             switch(b->type) {
                 case T_NULL :
                 case T_NUM :
@@ -373,8 +396,14 @@ return_code var_op_assign(Variable *a, Variable *b, Variable **r) {
             return RC_ERROR;
         }
     } else {
-        err_add(E_ERROR, FORBIDDEN_TYPE, "Cannot assign value to temporary variable");
-        return RC_ERROR;
+        // On vérifie si le type est affectable
+        if(b->type != T_NONEXISTENT) {
+            err_add(E_ERROR, FORBIDDEN_TYPE, "Cannot assign value of type nonexistent");
+            return RC_ERROR;
+        } else {
+            err_add(E_ERROR, FORBIDDEN_TYPE, "Cannot assign value to temporary variable");
+            return RC_ERROR;
+        }
     }
 
 }
@@ -413,9 +442,9 @@ return_code var_op(Variable *a, Variable *b, Variable **r, operation_type type) 
         return var_op_log(a, b, *r, type);
     else if(OP_ASSIGN == type)
         return var_op_assign(a, b, r);
-    else if(OP_REF_GET)
+    else if(OP_REF_GET == type)
         return var_op_ref_get(a, r);
-    else if(OP_REF_ACCESS)
+    else if(OP_REF_ACCESS == type)
         return var_op_ref_access(a, r);
     else { // Erreur opération inconnue !
         err_add(E_CRITICAL, UNKOWN_TYPE, "Unknown type of operation between two variables");

@@ -16,6 +16,7 @@
 #define OP_LOG 0x800
 #define OP_MATH_OR_LOG_TYPE 0x1E00
 #define OP_VAR 0x2000
+#define OP_OUTPUT 0x8000
 
 // Représente les différents types possibles d'une operation
 typedef enum e_operation_type {
@@ -32,9 +33,11 @@ typedef enum e_operation_type {
 
     OP_REF_GET = 0x1002, OP_REF_ACCESS = 0x1003, OP_ASSIGN = 0x1004,
 
-    OP_VALUE = 0x2000, OP_DEC_VAR = 0x2001, OP_DEC_ATTR = 0x2002, OP_ACCES = 0x2003, OP_CNTX_MODIFIER = 0x2004,
+    OP_VALUE = 0x2000, OP_DEC_VAR = 0x2001, OP_DEC_ATTR = 0x2002, OP_ACCES = 0x2003, OP_ATTR_ACCESS = 0x2004,
 
-	OP_COMMA = 0x4000, OP_RETURN = 0x4001, OP_BREAK = 0x4002
+	OP_COMMA = 0x4000, OP_RETURN = 0x4001, OP_BREAK = 0x4002,
+
+	OP_OUTPUT_VAR_DUMP = 0x8000
 
 } operation_type;
 
@@ -59,7 +62,10 @@ typedef struct s_Operation {
 } Operation;
 
 // Prototypes
-
+return_code op_delete(Operation *op);
+return_code op_init_loc(Operation *op, operation_type type, Operation *left, Operation *right, Variable *value);
+return_code op_init(Operation **op, operation_type type, Operation *left, Operation *right, Variable *value);
+Operation* op_new(operation_type type, Operation *left, Operation *right, Variable *value);
 return_code op_eval(Operation *op, Exec_context *ec_obj, Exec_context *ec_tmp, Variable **r) ;
 return_code op_unit(Variable **r, Operation* op, Variable **var_r, Exec_context *ec_obj);
 

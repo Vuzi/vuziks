@@ -12,7 +12,7 @@ typedef enum e_return_code {
 } return_code;
 
 typedef enum e_error_type {
-    FORBIDDEN_TYPE, NULL_VALUE, UNKOWN_TYPE, OP_IMPOSSIBLE
+    FORBIDDEN_TYPE, NULL_VALUE, UNKOWN_TYPE, OP_IMPOSSIBLE, CANT_ACCESS
 } error_type;
 
 typedef enum e_error_level {

@@ -1,0 +1,2 @@
+*.lex.c binary
+*.y.c   binary

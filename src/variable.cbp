@@ -29,7 +29,6 @@
 			</Target>
 		</Build>
 		<Compiler>
-			<Add option="-O3" />
 			<Add option="-Wshadow" />
 			<Add option="-Winit-self" />
 			<Add option="-Wredundant-decls" />
@@ -41,9 +40,6 @@
 			<Add option="-Wextra" />
 			<Add option="-Wall" />
 		</Compiler>
-		<Linker>
-			<Add option="-s" />
-		</Linker>
 		<Unit filename="debug.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -60,9 +56,6 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="linkedList/linkedList.h" />
-		<Unit filename="main.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Unit filename="math/math.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -71,6 +64,13 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="operation.h" />
+		<Unit filename="prog.h" />
+		<Unit filename="prog.lex.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="prog.y.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="str/str.c">
 			<Option compilerVar="CC" />
 		</Unit>

@@ -9,22 +9,15 @@
 #include "hash/hash.h"
 
 /*
-    A faire, urgent :
+    A faire :
 
-     - Ajouter un champ numéro aux variables (nombre de liens)
-     - Faire des fonctions "intelligentes" de suppression de variables
-     - Faire des fonctions "intelligentes" de suppression de contexte (Ou de vidage)
-     - Faire des fonctions intelligentes de copies de variables
-     - Faire des fonctions de copie de variable
-     - Nouveau type : référence (Pas le même que function)
-     - Opérateur '@' pour récupérer une référence (Uniquement sur variable nommée)
-     - Opérateur '*' d'accès (Uniquement sur variable nommée de type référence)
-     - Refaire en étant plus attentif à la mémoire ( !!! )
+        Parseur !
 */
 
 void test_variable(void);
 void test_node(void);
 void test_function(void);
+void test_object(void);
 
 void test_variable(void) {
 
@@ -386,11 +379,38 @@ void test_function(void) {
 
 }
 
+void test_object(void) {
+
+    //
+    //   objet o :
+    //
+    //   attr a  = 43;
+    //   var b = 12;
+    //   return 12;
+    //
+
+    // attr a = 43
+/*
+    Operation op1_1;
+    Operation op1_2;
+    Operation op1_3;
+*/
+
+    //
+    //  main :
+    //
+    //  var c = new o();
+    //  c.a = c.a - 1;
+    //
+
+}
+
 int main(void) {
 
-    //test_variable();
-    //test_node();
+ //   test_variable();
+  //  test_node();
     test_function();
+//    test_if();
 
     return 0;
 }

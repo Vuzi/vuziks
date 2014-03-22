@@ -54,6 +54,14 @@ return_code var_init(Variable **a, const char* name, hash_t name_h, language_typ
 
 }
 
+
+Variable* var_new(const char* name, hash_t name_h, language_type type) {
+
+    Variable *a = (Variable*)malloc(sizeof(Variable));
+    var_init_loc(a, name, name_h, type);
+    return a;
+}
+
 // Copie une liste de variable en mémoire
 Linked_list* var_copy_list(Linked_list *ll) {
 
@@ -113,15 +121,31 @@ Variable* var_search(Exec_context *ec, const char* name, hash_t name_h) {
     while(ec) {
         ll = ec->variables;
         while(ll) {
-            if(( ((Variable*)ll->value)->name_h == name_h ) && !strcmp(((Variable*)ll->value)->name, name))
+            if(( ((Variable*)ll->value)->name_h == name_h ) && !strcmp(((Variable*)ll->value)->name, name)) {
                 return (Variable*)ll->value;
-            else
+           } else
                 ll = ll->next;
         }
         ec = ec->caller_context;
     }
-
     return NULL;
+}
+
+// Opération d'affichage des variable
+return_code var_output(Variable *v, operation_type type) {
+    if(v) {
+        switch(type) {
+            case OP_OUTPUT_VAR_DUMP :
+                var_dump(v);
+                return RC_OK;
+            default :
+                err_add(E_CRITICAL, UNKOWN_TYPE, "Unknown type of output");
+                return RC_ERROR;
+        }
+    } else {
+        err_add(E_CRITICAL, NULL_VALUE, "Output with a null variable");
+        return RC_ERROR;
+    }
 }
 
 // Supprime une variable de mémoire

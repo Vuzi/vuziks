@@ -58,12 +58,13 @@ return_code ec_add_var(Exec_context* ec, char* name, hash_t name_h, Variable **r
 }
 
 // Unit comme une fonction
-return_code unit_function(Variable **r, Exec_context *ec_obj, Linked_list *args, Unit *u) {
+return_code unit_function(Variable **r, Exec_context *ec_obj, Exec_context *caller_tmp, Linked_list *args, Unit *u) {
     Exec_context ec_tmp;
     return_code rc = RC_OK;
     Variable *r_save = *r;
 
     ec_init_loc(&ec_tmp);
+    ec_tmp.caller_context = caller_tmp;
 
     if(u && (*r) && ec_obj) {
         Linked_list* ll = u->args;
@@ -71,7 +72,6 @@ return_code unit_function(Variable **r, Exec_context *ec_obj, Linked_list *args,
 
         // Arguments
         while(ll) {
-
             if(args) {
                 // Si argument envoyé (déjà copié)
                 v = (Variable*)args->value;
@@ -129,27 +129,31 @@ return_code unit_function(Variable **r, Exec_context *ec_obj, Linked_list *args,
 }
 
 // Unit comme un constructeur
-return_code unit_constructor(Exec_context *ec_obj, Linked_list *args,  Unit *u) {
+return_code unit_constructor(Exec_context *ec_obj, Exec_context *caller_obj, Exec_context *caller_tmp, Linked_list *args,  Unit *u) {
     return_code rc = RC_OK;
     Variable r; // Valeur de retour ignorée
     Variable *r_link = &r;
     var_init_loc(r_link, NULL, 0, T_NULL);
     r_link->deletable = 0;
 
-    rc = unit_function(&r_link, ec_obj, args, u);
+    ec_obj->caller_context = caller_obj;
+
+    rc = unit_function(&r_link, ec_obj, caller_tmp, args, u);
     var_delete(r_link);
+
+    ec_obj->caller_context = NULL;
 
     return rc;
 }
 
 // Evaluation d'unit conditonnel
-return_code unit_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_tmp_source, Unit_conditional *uc) {
+return_code unit_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context *caller_tmp, Unit_conditional *uc) {
     Exec_context ec_tmp;
     return_code rc = RC_OK;
     Variable *r_save = *r;
 
     ec_init_loc(&ec_tmp);
-    ec_tmp.caller_context = ec_tmp_source;
+    ec_tmp.caller_context = caller_tmp;
 
     while(uc) {
         // Si on a une condition
@@ -206,10 +210,10 @@ return_code unit_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_
 }
 
 // Evaluation condition
-static return_code op_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_tmp, struct s_Operation *op, char *go) {
+static return_code op_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context *caller_tmp, struct s_Operation *op, char *go) {
     return_code rc = RC_OK;
 
-    switch((rc = op_eval(op, ec_obj, ec_tmp, r))) {
+    switch((rc = op_eval(op, ec_obj, caller_tmp, r))) {
         case RC_WARNING :
             err_display_last(&e);
         case RC_OK :
@@ -237,14 +241,14 @@ static return_code op_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context
 }
 
 // Evaluation loop
-return_code unit_loop_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_tmp_source, Unit_loop *ul) {
+return_code unit_loop_eval(Variable **r, Exec_context *ec_obj, Exec_context *caller_tmp, Unit_loop *ul) {
     Exec_context ec_tmp;
     return_code rc = RC_OK;
     Variable *r_save = *r;
     char go = 0;
 
     ec_init_loc(&ec_tmp);
-    ec_tmp.caller_context = ec_tmp_source;
+    ec_tmp.caller_context = caller_tmp;
 
     if(ul) {
         do {

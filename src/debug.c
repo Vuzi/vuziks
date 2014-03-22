@@ -30,6 +30,84 @@ const char* language_type_debug(language_type l) {
             return "function";
         case T_OBJECT:
             return "object";
+        case T_NONEXISTENT:
+            return "non-existent";
+        default :
+            return "(Error type)";
+    }
+}
+
+// Type d'opération
+const char* operation_type_debug(operation_type o) {
+    switch(o) {
+        case OP_NOTHING:
+            return "OP_NOTHING";
+        case OP_UNIT_CALL:
+            return "OP_UNIT_CALL";
+        case OP_UNIT_NEW:
+            return "OP_UNIT_NEW";
+        case OP_MATH_PLUS:
+            return "OP_MATH_PLUS";
+        case OP_MATH_MINUS:
+            return "OP_MATH_MINUS";
+        case OP_MATH_MULT:
+            return "OP_MATH_MULT";
+        case OP_MATH_POW:
+            return "OP_MATH_POW";
+        case OP_MATH_DIV:
+            return "OP_MATH_DIV";
+        case OP_MATH_MODULO:
+            return "OP_MATH_MODULO";
+        case OP_MATH_INTDIV:
+            return "OP_MATH_INTDIV";
+        case OP_MATH_P_UNARY:
+            return "OP_MATH_P_UNARY";
+        case OP_MATH_M_UNARY:
+            return "OP_MATH_M_UNARY";
+        case OP_LOG_GT:
+            return "OP_LOG_GT";
+        case OP_LOG_GE:
+            return "OP_LOG_GE";
+        case OP_LOG_LT:
+            return "OP_LOG_LT";
+        case OP_LOG_LE:
+            return "OP_LOG_LE";
+        case OP_LOG_EQ:
+            return "OP_LOG_EQ";
+        case OP_LOG_DIF:
+            return "OP_LOG_DIF";
+        case OP_LOG_TYPE:
+            return "OP_LOG_TYPE";
+        case OP_LOG_NOT:
+            return "OP_LOG_NOT";
+        case OP_LOG_AND:
+            return "OP_LOG_AND";
+        case OP_LOG_OR:
+            return "OP_LOG_OR";
+        case OP_REF_GET:
+            return "OP_REF_GET";
+        case OP_REF_ACCESS:
+            return "OP_REF_ACCESS";
+        case OP_ASSIGN:
+            return "OP_ASSIGN";
+        case OP_VALUE:
+            return "OP_VALUE";
+        case OP_DEC_VAR:
+            return "OP_DEC_VAR";
+        case OP_DEC_ATTR:
+            return "OP_DEC_ATTR";
+        case OP_ACCES:
+            return "OP_ACCES";
+        case OP_ATTR_ACCESS:
+            return "OP_ATTR_ACCESS";
+        case OP_COMMA:
+            return "OP_COMMA";
+        case OP_RETURN:
+            return "OP_RETURN";
+        case OP_BREAK:
+            return "OP_BREAK";
+        case OP_OUTPUT_VAR_DUMP:
+            return "OP_OUTPUT_VAR_DUMP";
         default :
             return "(Error type)";
     }
@@ -41,20 +119,20 @@ void unit_dump(Unit *u) {
     Linked_list *ll = u->operations;
     debug_pr_lvl(), puts(">unit :");
 
-    debug_lvl++;
     while(ll) {
-        debug_pr_lvl(), puts("   operations : ");
+        debug_pr_lvl(), puts("  operations : ");
+        debug_lvl++;
         op_dump((Operation*)(ll->value));
         ll = ll->next;
+        debug_lvl--;
     }
-    debug_lvl--;
 }
 
 void op_dump(Operation *o) {
 
     debug_pr_lvl(), puts(">operation :");
 
-    debug_pr_lvl(), printf("  type : %x\n", o->type);
+    debug_pr_lvl(), printf("  type : %s (%x)\n", operation_type_debug(o->type), o->type);
 
     // Valeur
     if(o->info.val) {
@@ -89,12 +167,14 @@ void op_dump(Operation *o) {
 
 // Affichage debug
 void var_dump(Variable *v) {
-    debug_pr_lvl(), puts(">variable :");
+    debug_pr_lvl(), fputs(">variable ", stdout);
     if(v) {
-        debug_pr_lvl(), printf("  name : %s\n", v->name);
+        if(v->name) printf(" '%s' :\n", v->name);
+        else puts(" <anonymous> :");
         debug_pr_lvl(), printf("  name_h : %lu\n", (long unsigned)v->name_h);
         debug_pr_lvl(), printf("  type : %s\n", language_type_debug(v->type));
         debug_pr_lvl(), printf("  n_links : %d\n", v->n_links);
+        debug_pr_lvl(), printf("  deletable : %d\n", v->deletable);
         debug_pr_lvl(),  fputs("  value : ", stdout);
 
         switch(v->type) {
@@ -133,5 +213,5 @@ void var_dump(Variable *v) {
                 puts("(Error type)");
         }
     } else
-        debug_pr_lvl(), puts("\t(null)");
+        debug_pr_lvl(), puts(" <null> : \n\t(null)");
 }
