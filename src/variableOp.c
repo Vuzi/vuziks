@@ -413,7 +413,7 @@ return_code var_op_assign(Variable *a, Variable *b, Variable **r) {
         }
     } else {
         // On vérifie si le type est affectable
-        if(b->type != T_NONEXISTENT) {
+        if(b->type == T_NONEXISTENT) {
             err_add(E_ERROR, FORBIDDEN_TYPE, "Cannot assign value of type nonexistent");
             return RC_ERROR;
         } else {
