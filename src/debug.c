@@ -80,6 +80,8 @@ const char* operation_type_debug(operation_type o) {
             return "OP_LOG_TYPE";
         case OP_LOG_NOT:
             return "OP_LOG_NOT";
+        case OP_LOG_EXIST:
+            return "OP_LOG_EXIST";
         case OP_LOG_AND:
             return "OP_LOG_AND";
         case OP_LOG_OR:
@@ -96,6 +98,10 @@ const char* operation_type_debug(operation_type o) {
             return "OP_DEC_VAR";
         case OP_DEC_ATTR:
             return "OP_DEC_ATTR";
+        case OP_DELETE_VAR:
+            return "OP_DELETE_VAR";
+        case OP_DELETE_ATTR:
+            return "OP_DELETE_ATTR";
         case OP_ACCES:
             return "OP_ACCES";
         case OP_ATTR_ACCESS:
@@ -167,7 +173,7 @@ void op_dump(Operation *o) {
 
 // Affichage debug
 void var_dump(Variable *v) {
-    debug_pr_lvl(), fputs(">variable ", stdout);
+    debug_pr_lvl(), fputs(">variable", stdout);
     if(v) {
         if(v->name) printf(" '%s' :\n", v->name);
         else puts(" <anonymous> :");

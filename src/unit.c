@@ -57,6 +57,35 @@ return_code ec_add_var(Exec_context* ec, char* name, hash_t name_h, Variable **r
     return rc;
 }
 
+return_code ec_pop_var(Exec_context *ec, char* name, hash_t name_h, Variable **r) {
+
+    Linked_list *ll = ec->variables, *prec = NULL;
+
+    while(ll) {
+        if(( ((Variable*)ll->value)->name_h == name_h ) && !strcmp(((Variable*)ll->value)->name, name)) {
+            // On sort la valeur
+            *r = (Variable*)ll->value;
+            // On supprime son maillon
+            if(prec) prec->next = ll->next;
+            else     ec->variables = ll->next;
+            free(ll);
+
+            return RC_OK;
+        }
+        prec = ll;
+        ll = ll->next;
+    }
+
+    if(ec->caller_context)
+        return ec_pop_var(ec->caller_context, name, name_h, r);
+    else {
+        (*r)->type = T_NONEXISTENT;
+        (*r)->name = name, (*r)->name_h = name_h;
+        return RC_OK;
+    }
+
+}
+
 // Unit comme une fonction
 return_code unit_function(Variable **r, Exec_context *ec_obj, Exec_context *caller_tmp, Linked_list *args, Unit *u) {
     Exec_context ec_tmp;

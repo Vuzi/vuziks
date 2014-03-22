@@ -17,6 +17,7 @@ static return_code var_op_equal(Variable *a, Variable *b, Variable *r, operation
 static return_code var_op_type(Variable *a, Variable *b, Variable *r);
 static return_code var_op_or_and(Variable *a, Variable *b, Variable *r, operation_type type);
 static return_code var_op_not(Variable *a, Variable *r);
+static return_code var_op_exist(Variable *a, Variable *r);
 static return_code var_op_log(Variable *a, Variable *b, Variable *r, operation_type type);
 static return_code var_op_assign(Variable *a, Variable *b, Variable **r);
 static return_code var_op_assign_object(Variable *a, Variable *b);
@@ -46,7 +47,7 @@ return_code var_op_pow(Variable *a, Variable *b, Variable *r) {
 }
 
 return_code var_op_div(Variable *a, Variable *b, Variable *r) {
-    if(a->value.v_num != .0) {
+    if(b->value.v_num != .0) {
         r->value.v_num = a->value.v_num / b->value.v_num;
         return RC_OK;
     } else {
@@ -56,7 +57,7 @@ return_code var_op_div(Variable *a, Variable *b, Variable *r) {
 }
 
 return_code var_op_intdiv(Variable *a, Variable *b, Variable *r) {
-    if(a->value.v_num != .0) {
+    if(b->value.v_num != .0) {
         r->value.v_num = integer_division(a->value.v_num, b->value.v_num);
         return RC_OK;
     } else {
@@ -256,6 +257,14 @@ return_code var_op_not(Variable *a, Variable *r) {
     return RC_OK;
 }
 
+return_code var_op_exist(Variable *a, Variable *r) {
+
+    r->type = T_BOOL;
+    r->value.v_bool = (a->type == T_NONEXISTENT ? 0 : 1);
+
+    return RC_OK;
+}
+
 return_code var_op_log(Variable *a, Variable *b, Variable *r, operation_type type) {
 
     switch(type) {
@@ -274,6 +283,8 @@ return_code var_op_log(Variable *a, Variable *b, Variable *r, operation_type typ
             return var_op_or_and(a, b, r, type);
         case OP_LOG_NOT :
             return var_op_not(a, r);
+        case OP_LOG_EXIST :
+            return var_op_exist(a, r);
         default :
             err_add(E_CRITICAL, UNKOWN_TYPE, "Unknown type of logical operation : the operation type cannot be resolved as a known type");
             return RC_ERROR;
@@ -339,18 +350,23 @@ return_code var_op_ref_access(Variable *a, Variable **r) {
 }
 
 return_code var_op_attr_access(Variable *a, const char* name, hash_t name_h, Variable **r) {
-    if(a->type == T_OBJECT) {
-        Variable *v = var_search(&a->value.v_obj, name, name_h);
-        if(v) {
-            *r = v;
-            return RC_OK;
+    if(a->type == T_NONEXISTENT) {
+        err_add(E_ERROR, FORBIDDEN_TYPE, "Cannot access member variable of a non-existent variable : '%s'", a->name);
+        return RC_ERROR;
+    } else {
+        if(a->type == T_OBJECT) {
+            Variable *v = var_search(&a->value.v_obj, name, name_h);
+            if(v) {
+                *r = v;
+                return RC_OK;
+            } else {
+                err_add(E_ERROR, CANT_ACCESS, "Cannot access member variable '%s' (hash : %lu)", name, (long unsigned)name_h);
+                return RC_ERROR;
+            }
         } else {
-            err_add(E_ERROR, CANT_ACCESS, "Cannot access member variable '%s' (hash : %lu)", name, (long unsigned)name_h);
+            err_add(E_ERROR, FORBIDDEN_TYPE, "Cannot access member variable using a non-objet variable");
             return RC_ERROR;
         }
-    } else {
-        err_add(E_ERROR, FORBIDDEN_TYPE, "Cannot access member variable using a non-objet variable");
-        return RC_ERROR;
     }
 }
 

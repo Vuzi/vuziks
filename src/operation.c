@@ -58,10 +58,14 @@ return_code op_eval(Operation *op, Exec_context *ec_obj, Exec_context *ec_tmp, V
             rc = ec_add_var(ec_obj, op->info.val, op->info.val_h, r);
         } else if(op->type == OP_DEC_VAR) { // Déclaration variable temporaire
             rc = ec_add_var(ec_tmp, op->info.val, op->info.val_h, r);
+        } else if(op->type == OP_DELETE_VAR) { // Déclaration variable temporaire
+            rc = ec_pop_var(ec_tmp, op->info.val, op->info.val_h, r);
+        } else if(op->type == OP_DELETE_ATTR) { // Déclaration variable temporaire
+            rc = ec_pop_var(ec_obj, op->info.val, op->info.val_h, r);
         } else if(op->type == OP_ACCES) { // Accès de variable
             Variable *tmp = NULL;
             if(!((tmp = var_search(ec_tmp, op->info.val, op->info.val_h)) || (tmp = var_search(ec_obj, op->info.val, op->info.val_h))))
-                (*r)->type = T_NONEXISTENT;
+                (*r)->type = T_NONEXISTENT, (*r)->name = op->info.val;
             else
                 (*r) = tmp;
         } else if(op->type == OP_VALUE) { // Variable naturelle

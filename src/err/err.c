@@ -4,7 +4,7 @@ Error e;
 
 // Affichage d'erreur
 void err_display_last(Error *_e) {
-    printf("#error\n  %s\n  level %d and type %d\n", _e->msg, _e->level, _e->type);
+    printf("[x] Error : %s\n    level %d and type %d\n", _e->msg, _e->level, _e->type);
 }
 
 // Ajout d'erreur

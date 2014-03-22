@@ -38,6 +38,7 @@ typedef struct s_Variale Variable;
 return_code ec_init_loc(Exec_context *ec);
 return_code ec_init(Exec_context **ec);
 return_code ec_add_var(Exec_context* ec, char* name, hash_t name_h, Variable **r);
+return_code ec_pop_var(Exec_context *ec, char* name, hash_t name_h, Variable **r);
 return_code ec_empty(Exec_context *ec);
 
 return_code unit_function(Variable **r, Exec_context *ec_obj, Exec_context *caller_tmp, Linked_list *args, Unit *u); // Retourne la valeur de l'évaluation

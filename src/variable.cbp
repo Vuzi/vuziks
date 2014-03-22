@@ -40,6 +40,7 @@
 			<Add option="-Wextra" />
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="constant.h" />
 		<Unit filename="debug.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -52,6 +53,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="hash/hash.h" />
+		<Unit filename="init/params.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="init/params.h" />
 		<Unit filename="linkedList/linkedList.c">
 			<Option compilerVar="CC" />
 		</Unit>

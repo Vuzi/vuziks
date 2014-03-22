@@ -1,2 +1,2 @@
-*.lex.c binary
-*.y.c   binary
+lexer.c    binary
+parser.c   binary
