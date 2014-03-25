@@ -1,0 +1,11 @@
+# Test fonction n°3
+# -----------------------------------------
+# Création d'une fonction retournant la
+# somme de ces deux paramètres
+# -----------------------------------------
+
+new var add = function(a,b,c) {
+	return a + b + c;
+};
+
+return add(72, -32, 2); # Retourne 72 + -30 + 2

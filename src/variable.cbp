@@ -11,6 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
+				<Option parameters="func-1.vz --show-op" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
@@ -57,6 +58,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="init/params.h" />
+		<Unit filename="lexer.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="linkedList/linkedList.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -69,13 +73,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="operation.h" />
-		<Unit filename="prog.h" />
-		<Unit filename="prog.lex.c">
+		<Unit filename="parser.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="prog.y.c">
-			<Option compilerVar="CC" />
-		</Unit>
+		<Unit filename="parser.h" />
 		<Unit filename="str/str.c">
 			<Option compilerVar="CC" />
 		</Unit>

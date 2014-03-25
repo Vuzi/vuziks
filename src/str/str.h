@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include "../err/err.h"
 
 char* str_copy(const char* s);
 

@@ -8,7 +8,7 @@ Linked_list* linked_list_last(Linked_list* ll) {
 }
 
 void linked_list_append(Linked_list** ll, void* v) {
-    Linked_list *new_ll = (Linked_list*) malloc(sizeof(Linked_list));
+    Linked_list *new_ll = (Linked_list*) xmalloc(sizeof(Linked_list));
     new_ll->value = v;
 
     if(*ll)
@@ -20,7 +20,7 @@ void linked_list_append(Linked_list** ll, void* v) {
 }
 
 void linked_list_push(Linked_list **ll, void* v) {
-    Linked_list *new_ll = (Linked_list*) malloc(sizeof(Linked_list));
+    Linked_list *new_ll = (Linked_list*) xmalloc(sizeof(Linked_list));
 
     new_ll->value = v;
     new_ll->next = *ll;
@@ -34,6 +34,7 @@ void linked_list_del(Linked_list *ll, void (*free_function)(void*)) {
     while(ll) {
         tmp = ll->next;
         if(free_function) free_function(ll->value);
+        xfree(ll);
         ll = tmp;
     }
 }

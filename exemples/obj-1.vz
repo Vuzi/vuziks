@@ -1,0 +1,22 @@
+# Test objet n°1
+# -----------------------------------------
+# Création d'un objet, puis accès
+# à ces variables membres
+# -----------------------------------------
+
+# Création d'une fonction
+new var foo = function() {
+	new attr a = -1;
+	new attr boo = function() {
+		return 42;
+	};
+};
+
+# On instancie comme un objet
+new var o = new foo();
+
+# On test les variables membres
+dump o.boo();  # Doit afficher 42
+dump o.a;      # Doit afficher -1
+
+return 0;

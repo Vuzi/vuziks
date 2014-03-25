@@ -4,17 +4,25 @@ static int param_make(char* option, char* argument);
 static void show_version(void);
 static void show_help(void);
 
-Params *p = NULL;
+Params p;
 
 void params_init(void) {
-	p = (Params*)malloc(sizeof(Params));
+	p.interactive_mod = 1;
+	p.show_operation = 0;
+	p.auto_dump = 0;
+	p.mem_info = 0;
 
-	p->interactive_mod = 1;
-	p->show_operation = 0;
-	p->auto_dump = 0;
+	p.file = NULL;
 
-	p->argc = 0;
-	p->argv = NULL;
+	p.argc = 0;
+	p.argv = NULL;
+
+	atexit(params_free);
+}
+
+void params_free(void) {
+    if(p.file)
+        fclose(p.file);
 }
 
 void params_make(int argc, char **argv) {
@@ -61,6 +69,7 @@ void params_make(int argc, char **argv) {
             // Only one dash, stdin
             else if(arg_length == 1) {
                 // stdin comme fichier
+                p.file = stdin;
             }
             // Short args
             else {
@@ -89,7 +98,17 @@ void params_make(int argc, char **argv) {
         }
         // Node dash, filename
         else {
-            // Pas encore géré !
+            if(!p.file) {
+                if(!(p.file = fopen(argv[i], "rb"))) {
+                    printf("[x] Cannot open file '%s' : ", argv[i]);
+                    perror(NULL);
+                } else {
+                    printf("[i] File '%s' opened\n", argv[i]);
+                    p.interactive_mod = 0;
+                }
+            } else {
+                printf("[i] Trying to open more than one file, file '%s' ignored\n", argv[i]);
+            }
         }
 
     }
@@ -99,26 +118,31 @@ static int param_make(char* option, char* argument) {
 
     argument++; // en attendant
 
-    if(p) {
-        if (!strcmp(option, "i") || !strcmp(option, "interactive")) {
-            p->interactive_mod = 1;
-            return 0;
-        } else if (!strcmp(option, "show-op")) {
-            p->show_operation = 1;
-            return 0;
-        }else if (!strcmp(option, "auto-dump")) {
-            p->auto_dump = 1;
-            return 0;
-        } else if (!strcmp(option, "h") || !strcmp(option, "help")) {
-            show_help();
-            exit(0);
-        } else if (!strcmp(option, "v") || !strcmp(option, "version")) {
-            show_version();
-            exit(0);
-        } else {
-            printf("[x] Unknown option : '%s'", option);
-            return 0;
-        }
+    if (!strcmp(option, "i") || !strcmp(option, "interactive")) {
+        p.interactive_mod = 1;
+        return 0;
+    } else if (!strcmp(option, "show-op")) {
+        p.show_operation = 1;
+        return 0;
+    } else if (!strcmp(option, "auto-dump")) {
+        p.auto_dump = 1;
+        return 0;
+    } else if (!strcmp(option, "mem-info")) {
+        p.mem_info = 1;
+        atexit(print_memory_info);
+        return 0;
+    } else if (!strcmp(option, "show-timer")) {
+        p.show_timer = 1;
+        return 0;
+    } else if (!strcmp(option, "h") || !strcmp(option, "help")) {
+        show_help();
+        exit(0);
+    } else if (!strcmp(option, "v") || !strcmp(option, "version")) {
+        show_version();
+        exit(0);
+    } else {
+        printf("[x] Unknown option : '%s'", option);
+        return 0;
     }
     return 0;
 }
@@ -131,8 +155,10 @@ static void show_version(void) {
 }
 
 static void show_help(void) {
-   puts("[i] Usage: vuziks [OPTION]... [FILE]\n\n"
+   puts("[i] Usage: vuziks [OPTION] [FILE]\n\n"
          "     -i --interactive             Interactive mode (default with no files).\n"
          "       --auto-dump                    Automaticaly dump the last value of a statement.\n"
-         "       --show-op                      Show the detail of each operation.\n");
+         "     --show-op                    Show the detail of each operation.\n"
+         "     --show-timer                 Show a parser and execution timer in secondes.\n"
+         "     --mem-info                   Show memory management informations.\n");
 }

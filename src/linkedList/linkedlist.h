@@ -2,6 +2,7 @@
 #define _H_LINKEDLIST
 
 #include <stdlib.h>
+#include "../err/err.h"
 
 typedef struct s_Linked_list {
     struct s_Linked_list* next;

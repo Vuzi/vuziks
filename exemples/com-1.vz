@@ -1,0 +1,16 @@
+
+<#  Ceci est un commentaire
+    multi-ligne, il ne doit pas
+    etre lu comme du code     #>
+
+new var a = 12; # Ce commentaire de fin de ligne egalement !
+
+<#  Il faut faire attention a ###
+    ne bien enlever que les commentaires ! #>
+
+# et oui
+
+dump a;
+return 0;
+
+# et même ceux se terminant par une fin de fichier !

@@ -34,7 +34,7 @@
 # define YY_YY_PARSER_TAB_H_INCLUDED
 /* Enabling traces.  */
 #ifndef YYDEBUG
-# define YYDEBUG 0
+# define YYDEBUG 1
 #endif
 #if YYDEBUG
 extern int yydebug;
@@ -71,19 +71,22 @@ extern int yydebug;
      DIF = 280,
      P_LEFT = 281,
      P_RIGHT = 282,
-     COMMA = 283,
-     VAR = 284,
-     ATTR = 285,
-     NEW = 286,
-     DELETE = 287,
-     IDENTIFIER = 288,
-     DUMP = 289,
-     EXPR_END = 290,
-     BREAK = 291,
-     RETURN = 292,
-     POS = 293,
-     NEG = 294,
-     ADDR_ACCESS = 295
+     BRACE_LEFT = 283,
+     BRACE_RIGHT = 284,
+     COMMA = 285,
+     VAR = 286,
+     ATTR = 287,
+     NEW = 288,
+     DELETE = 289,
+     IDENTIFIER = 290,
+     FUNCTION = 291,
+     DUMP = 292,
+     EXPR_END = 293,
+     BREAK = 294,
+     RETURN = 295,
+     POS = 296,
+     NEG = 297,
+     ADDR_ACCESS = 298
    };
 #endif
 
@@ -92,9 +95,11 @@ extern int yydebug;
 typedef union YYSTYPE
 {
 /* Line 2058 of yacc.c  */
-#line 43 "parser.y"
+#line 45 "parser.y"
 
-  Operation *op;
+  Unit* function;
+  Linked_list* list;
+  Operation* op;
   Unit *u;
   char *str;
   float value;
@@ -102,7 +107,7 @@ typedef union YYSTYPE
 
 
 /* Line 2058 of yacc.c  */
-#line 106 "parser.tab.h"
+#line 111 "parser.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

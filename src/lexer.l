@@ -54,6 +54,8 @@
 
 blanc     [ \t]+
 
+newline   "\n"|"\r"|"\r\n"
+
 chiffre   [0-9]
 entier    {chiffre}+
 exposant  [eE][+-]?{entier}
@@ -63,9 +65,18 @@ reel      {entier}?("."?{entier}){exposant}?
 char      [_a-zA-Z]
 var       {char}({char}|{chiffre})*
 
+/* règles */
+%x IN_COMMENT
+%x IN_COMMENT_LINE
+
 %%
 
-{blanc}           { /* Rien */ }
+<INITIAL>{
+
+"<#"              { BEGIN(IN_COMMENT); }
+"#"               { BEGIN(IN_COMMENT_LINE); }
+
+{blanc}           { beginToken(yytext); }
 
 {reel}            { yylval.value = atof(yytext);
 		        	beginToken(yytext); return(NUMBER);
@@ -110,13 +121,39 @@ var       {char}({char}|{chiffre})*
 
 "return"|"RETURN" { beginToken(yytext); return(RETURN); }
 "break"|"BREAK"	  { beginToken(yytext); return(BREAK); }
+
+"function"|"FUNCTION"	  { beginToken(yytext); return(FUNCTION); }
  
 "("		          { beginToken(yytext); return(P_LEFT); }
 ")"		          { beginToken(yytext); return(P_RIGHT); }
 
-";"|"\n"          { beginToken(yytext); return(EXPR_END); }
+"{"		          { beginToken(yytext); return(BRACE_LEFT); }
+"}"		          { beginToken(yytext); return(BRACE_RIGHT); }
 
-{var}             { yylval.str = strdup(yytext);
+";"               { beginToken(yytext); return(EXPR_END); }
+","               { beginToken(yytext); return(COMMA); }
+
+{var}             { yylval.str = str_copy(yytext);
 					beginToken(yytext); return(IDENTIFIER);
 				  }
 
+{newline}         { yylineno++; beginTokenNewLine(); }
+
+.                 { beginToken(yytext); 
+	                printf("[!] Unkown symbol read : '%s'\n", yytext);
+	              }
+
+}
+
+<IN_COMMENT>{
+"#>"              { BEGIN(INITIAL); }
+[^#\n]+
+"#"
+\n                { yylineno++; } 
+}
+
+<IN_COMMENT_LINE>{
+"\n"              { yylineno++; BEGIN(INITIAL); }
+<<EOF>>           { BEGIN(INITIAL); }
+.+
+}

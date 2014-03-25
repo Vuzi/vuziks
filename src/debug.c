@@ -1,8 +1,9 @@
+
+/* ==       Fichier debug.c       ==*/
+
 #include "debug.h"
 
-
-
-// Pour la mise en page des dumps et aux affichages de debug
+// Afficher un certain nombre d'espace(s) - pour la mise en page des dumps
 int debug_lvl = 0;
 
 void debug_pr_lvl(void) {
@@ -11,7 +12,7 @@ void debug_pr_lvl(void) {
         fputs("  |  ", stdout);
 }
 
-// Type de variable
+// Type de variable en chaîne
 const char* language_type_debug(language_type l) {
     switch(l) {
         case T_NUM:
@@ -24,8 +25,6 @@ const char* language_type_debug(language_type l) {
             return "array";
         case T_LINKEDLIST:
             return "linked list";
-        case T_REF:
-            return "reference";
         case T_FUNCTION:
             return "function";
         case T_OBJECT:
@@ -37,7 +36,7 @@ const char* language_type_debug(language_type l) {
     }
 }
 
-// Type d'opération
+// Type d'opération en chaîne
 const char* operation_type_debug(operation_type o) {
     switch(o) {
         case OP_NOTHING:
@@ -86,10 +85,6 @@ const char* operation_type_debug(operation_type o) {
             return "OP_LOG_AND";
         case OP_LOG_OR:
             return "OP_LOG_OR";
-        case OP_REF_GET:
-            return "OP_REF_GET";
-        case OP_REF_ACCESS:
-            return "OP_REF_ACCESS";
         case OP_ASSIGN:
             return "OP_ASSIGN";
         case OP_VALUE:
@@ -104,6 +99,10 @@ const char* operation_type_debug(operation_type o) {
             return "OP_DELETE_ATTR";
         case OP_ACCES:
             return "OP_ACCES";
+        case OP_ACCES_ATTR:
+            return "OP_ACCES_ATTR";
+        case OP_ACCES_VAR:
+            return "OP_ACCES_VAR";
         case OP_ATTR_ACCESS:
             return "OP_ATTR_ACCESS";
         case OP_COMMA:
@@ -114,19 +113,21 @@ const char* operation_type_debug(operation_type o) {
             return "OP_BREAK";
         case OP_OUTPUT_VAR_DUMP:
             return "OP_OUTPUT_VAR_DUMP";
+        case OP_UNIT:
+            return "OP_UNIT";
         default :
             return "(Error type)";
     }
 }
 
-
+// Affichage debug d'unité
 void unit_dump(Unit *u) {
 
     Linked_list *ll = u->operations;
     debug_pr_lvl(), puts(">unit :");
 
+    debug_pr_lvl(), puts("  operations : ");
     while(ll) {
-        debug_pr_lvl(), puts("  operations : ");
         debug_lvl++;
         op_dump((Operation*)(ll->value));
         ll = ll->next;
@@ -134,6 +135,7 @@ void unit_dump(Unit *u) {
     }
 }
 
+// Affichage debug d'opération
 void op_dump(Operation *o) {
 
     debug_pr_lvl(), puts(">operation :");
@@ -142,9 +144,11 @@ void op_dump(Operation *o) {
 
     // Valeur
     if(o->info.val) {
-        debug_pr_lvl(), printf("  info.val : %s\n", o->info.val);
+        debug_pr_lvl(), printf("  info.val : %s\n", o->info.val ? o->info.val : "(null)");
         debug_pr_lvl(), printf("  info.val_h : %lu\n", (long unsigned)o->info.val_h);
     }
+    if(o->info.line)
+        debug_pr_lvl(), printf("  info.line : %u\n", o->info.line);
 
     // Variable
     if(o->value) {
@@ -161,7 +165,6 @@ void op_dump(Operation *o) {
         op_dump(o->operations[0]);
         debug_lvl--;
     }
-
     if(o->operations[1]) {
         debug_pr_lvl(), printf("  right operation : \n");
         debug_lvl++;
@@ -170,16 +173,15 @@ void op_dump(Operation *o) {
     }
 }
 
-
-// Affichage debug
+// Affichage debug variable
 void var_dump(Variable *v) {
     debug_pr_lvl(), fputs(">variable", stdout);
     if(v) {
+        if(v->container) fputs(" <attr>", stdout); else fputs(" <var>", stdout);
         if(v->name) printf(" '%s' :\n", v->name);
         else puts(" <anonymous> :");
         debug_pr_lvl(), printf("  name_h : %lu\n", (long unsigned)v->name_h);
         debug_pr_lvl(), printf("  type : %s\n", language_type_debug(v->type));
-        debug_pr_lvl(), printf("  n_links : %d\n", v->n_links);
         debug_pr_lvl(), printf("  deletable : %d\n", v->deletable);
         debug_pr_lvl(),  fputs("  value : ", stdout);
 
@@ -198,26 +200,47 @@ void var_dump(Variable *v) {
                 break;
             case T_LINKEDLIST:
                 puts("linked list");
-                break;
-            /* Autres case à faire */
-            case T_REF:
-                puts("reference : ");
-                debug_lvl++;
-                var_dump(v->value.v_ref);
-                debug_lvl--;
+                // todo
                 break;
             case T_FUNCTION:
                 puts("function : ");
                 debug_lvl++;
-                unit_dump(v->value.v_func);
+               // unit_dump(v->value.v_func);
                 debug_lvl--;
                 break;
             case T_OBJECT:
-                puts("object");
+                puts("object : ");
+                debug_lvl++;
+                var_obj_dump(v->value.v_obj);
+                debug_lvl--;
+                break;
+            case T_ARGS:
+                puts("arguments : ");
+                debug_lvl++;
+                debug_pr_lvl(), puts("(todo)");
+                //var_obj_dump(v->value.v_obj);
+                debug_lvl--;
                 break;
             default :
                 puts("(Error type)");
         }
     } else
         debug_pr_lvl(), puts(" <null> : \n\t(null)");
+}
+
+// Affichage debug objet
+void var_obj_dump(Object *o) {
+    debug_pr_lvl(), fputs(">object\n", stdout);
+    if(o) {
+        debug_pr_lvl(), printf("  n_links : %d\n", o->n_links);
+        debug_pr_lvl(), printf("  variables :\n");
+
+        debug_lvl++;
+        Linked_list *ll = o->ec.variables;
+        while(ll)
+            var_dump((Variable*)ll->value), ll = ll->next;
+        debug_lvl--;
+
+    } else
+        debug_pr_lvl(), fputs("  (null)\n", stdout);
 }

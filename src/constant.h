@@ -1,10 +1,15 @@
 #ifndef _H_CONSTANT
 #define _H_CONSTANT
 
-/* == Var Globales == */
-extern struct s_Params *p;
+/* ==       Fichier constant.h       ==
+   Contient les constantes du programme */
 
-/* == Defines == */
+#include "init/params.h"
+
+// Var globales
+extern struct s_Params p;
+
+// Defines
 #define VERSION_NUM "0.01a"
 
 #endif

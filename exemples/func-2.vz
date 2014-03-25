@@ -1,0 +1,11 @@
+# Test fonction n°2
+# -----------------------------------------
+# Création d'une fonction retournant le
+# double de son paramètre
+# -----------------------------------------
+
+new var double = function(a) {
+	return a * 2;
+};
+
+return double(15); # Quitte le programme en renvoyant 15 * 2

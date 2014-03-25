@@ -1,5 +1,6 @@
 %{
 	#define YYERROR_VERBOSE
+	#define YYDEBUG 1
 
 	#include <stdio.h>
 	#include <stdlib.h>
@@ -17,7 +18,8 @@
 	#include "parser.h"
 
 	// Valeurs externes
-	extern char *yytext;
+	extern char* yytext;
+	extern FILE* yyin;
 	extern int yylineno;
 
 	// Prototypes
@@ -28,7 +30,7 @@
 	void beginToken(const char *t);
 	void beginTokenNewLine();
 
-	// Context courant
+	// Context courant pour le mode interactif
 	Exec_context ec_tmp, ec_obj;
 	Variable r_base, *r;
 	
@@ -41,7 +43,9 @@
 %}
 
 %union {
-  Operation *op;
+  Unit* function;
+  Linked_list* list;
+  Operation* op;
   Unit *u;
   char *str;
   float value;
@@ -51,10 +55,10 @@
 // Liste des terminaux pouvant être rencontrés
 %token NUMBER BOOL
 %token PLUS MINUS STAR SLASH DIV POW EQUAL POINT ADDR MODULO MORE LESS MORE_E LESS_E AND OR NOT EXIST D_EQUAL T_EQUAL DIF
-%token P_LEFT P_RIGHT
+%token P_LEFT P_RIGHT BRACE_LEFT BRACE_RIGHT
 %token COMMA
 %token VAR ATTR NEW DELETE
-%token IDENTIFIER
+%token IDENTIFIER FUNCTION
 %token DUMP
 %token EXPR_END
 
@@ -80,10 +84,12 @@
 %left  IDENTIFIER                              // Accès variable, priorité max
 
 // Type utilisé dans l'union suivant le type de terminal rencontré
-%type <op>    RETURN BREAK EQUAL PLUS MINUS STAR SLASH DIV MODULO MORE LESS MORE_E LESS_E D_EQUAL T_EQUAL POW NEG POS POINT VAR ATTR NEW P_LEFT P_RIGHT ADDR ADDR_ACCESS Expression Function Statement
-%type <str>   IDENTIFIER
-%type <value> NUMBER
-%type <bool>  BOOL
+%type <function> Function
+%type <list>     Statements Unit Param_list Param_call_list
+%type <op>       RETURN BREAK EQUAL PLUS MINUS STAR SLASH DIV MODULO MORE LESS MORE_E LESS_E D_EQUAL T_EQUAL POW NEG POS POINT VAR ATTR NEW P_LEFT P_RIGHT ADDR ADDR_ACCESS Expression Statement
+%type <str>      IDENTIFIER
+%type <value>    NUMBER
+%type <bool>     BOOL
 
 // Par où on commence
 %start Input
@@ -91,73 +97,157 @@
 
 Input:
 	  /* Vide */
-	| Input Statement
+	| Input Statements {
+			Unit u;
+			u.args = NULL;
+			u.operations = $2;
+
+			p.end_parsing = clock();
+
+			if(p.show_operation) {
+				puts("[>] Result in memory :"), unit_dump(&u);
+				fputs("[*] Press enter to eval", stdout);
+				getchar();
+			}
+
+			if(p.show_timer)
+				printf("[i] Parsed in %.4fs\n", ((p.end_parsing-p.start_parsing)/(double)CLOCKS_PER_SEC));
+
+			eval_main(&u);
+	  }
 	;
 
+// Déclaration de fonction
+Function:
+	  FUNCTION P_LEFT P_RIGHT Unit {
+	  	$$ = unit_new($4, NULL);
+	  }
+	|  
+	  FUNCTION P_LEFT Param_list P_RIGHT Unit {
+	  	// A faire les paramètres
+	  	$$ = unit_new($5, $3);
+	  }
+	;
+
+// Paramètres de déclaration
+Param_list:
+	  IDENTIFIER {
+		Variable *v = var_new(NULL, 0, T_NULL);
+	  	v->name = $1;
+	  	v->name_h = str_hash($1);
+	  	v->deletable = 1;
+
+		$$ = NULL;
+		linked_list_append(&$$, (void*)v);
+	  }
+	| Param_list COMMA IDENTIFIER {
+		Variable *v = var_new(NULL, 0, T_NULL);
+	  	v->name = $3;
+	  	v->name_h = str_hash($3);
+	  	v->deletable = 1;
+
+		linked_list_append(&$1, (void*)v);
+		$$ = $1;
+	  }
+	;
+
+// Paramètres d'appel
+Param_call_list:
+	  Expression {
+		$$ = NULL;
+		linked_list_append(&$$, (void*)$1);
+	  }
+	| Param_call_list COMMA Expression {
+		linked_list_append(&$1, (void*)$3);
+		$$ = $1;
+	  }
+	;
+
+// Unité de code (Fonction, boucle, etc..)
+Unit:
+	  BRACE_LEFT Statements BRACE_RIGHT {
+		$$ = $2;
+	  }
+	;
+
+// Un ensemble de lignes de code (Par exemple le contenu d'une fonction ou une boucle)
+Statements:
+	  Statements Statement {
+	  	$$ = $1; // Il faut ajouter le statement à la liste des statement
+	  	if($2) linked_list_append(&$1, (void*)$2);
+	  }
+	| Statement {
+		$$ = NULL; // Pas encore de liste, il faut la créer
+	  	if($1) linked_list_append(&$$, (void*)$1); // On met notre statement dedans
+	  }
+	;
+
+// Une 'ligne' de code
 Statement:
 	  EXPR_END {
+	  	if(p.interactive_mod) {
 			puts("[!] Empty statement\n");
 			beginTokenNewLine();
+		} else {
+			$$ = NULL;
+		}
 	  }
 	| Expression EXPR_END {
-		// Initialisation valeur retour
-		var_init_loc(&r_base, NULL, 0, T_NULL);
-		r_base.deletable = 0;
-		r = &r_base;
+	  	if(p.interactive_mod) {
+			// Initialisation valeur retour
+			var_init_loc(&r_base, NULL, 0, T_NULL);
+			r_base.deletable = 0;
+			r = &r_base;
 
-		if(p->show_operation) {
-			puts("[>] Result in memory :"), op_dump($1);
-			fputs("[*] Press enter to eval", stdout);
-			getchar();
+			if(p.show_operation) {
+				puts("[>] Result in memory :"), op_dump($1);
+				fputs("[*] Press enter to eval", stdout);
+				getchar();
+			}
+
+			// Evaluation
+			puts("\n[<] Evaluating the operations ...");
+			switch(op_eval($1, &ec_obj, &ec_tmp, &r)) {
+				case RC_WARNING :
+					err_display_last();
+				case RC_BREAK :
+				case RC_OK :
+					break;
+				case RC_ERROR :
+					err_display_last();
+					break;
+				case RC_CRITICAL:
+					err_display_last();
+					printf("[x] Error, interpreter stopped with code %x \n", e.type);
+					return e.type;
+				case RC_RETURN :
+					if(r->type == T_NUM)
+						goodbye = (int)r->value.v_num;
+					printf("[i] Interpreter stopped (%x) \n", goodbye);
+					exit(goodbye);
+				default:
+					break;
+			}
+
+			puts("[<] Evaluation done");
+
+			if(p.auto_dump) {
+				puts("\n[>] Statement value :");
+				var_dump(r);
+			}
+
+			// Suppression valeur temporaire
+			var_delete(&r_base, 1);
+			beginTokenNewLine();
+			puts("");
+		} else {
+			$$ = $1;
+			$$->info.line = yylineno;
 		}
-
-		// Evaluation
-		puts("\n[<] Evaluating the operations ...");
-		switch(op_eval($1, &ec_obj, &ec_tmp, &r)) {
-			case RC_WARNING :
-				err_display_last(&e);
-			case RC_BREAK :
-			case RC_OK :
-				break;
-			case RC_ERROR :
-				err_display_last(&e);
-				break;
-			case RC_CRITICAL:
-				err_display_last(&e);
-				printf("[x] Error, interpreter stopped with code %x \n", e.type);
-				return e.type;
-			case RC_RETURN :
-				if(r->type == T_NUM)
-					goodbye = (int)r->value.v_num;
-				printf("[i] Interpreter stopped (%x) \n", goodbye);
-				exit(goodbye);
-			default:
-				break;
-		}
-
-		puts("[<] Evaluation done");
-
-		if(p->auto_dump) {
-			puts("\n[>] Statement value :");
-			var_dump(r);
-		}
-
-		// Suppression valeur temporaire
-		var_delete(&r_base);
-		beginTokenNewLine();
-		puts("");
 	}
 	;
 
-Function:
-	  Expression P_LEFT Expression P_RIGHT {                       // Appel d'unit comme fonction (OP_UNIT_CALL)
-	  	$$ = op_new(OP_UNIT_CALL, $1, $3, NULL);
-	  }
-	| Expression P_LEFT P_RIGHT {                                  // Appel d'unit comme fonction (OP_UNIT_CALL)
-	  	$$ = op_new(OP_UNIT_CALL, $1, NULL, NULL);
-	  }
-	  ;
-
+// Représente une expression (Un 'morceau' d'opération)
 Expression:
 	  Expression EQUAL Expression {                                // Affectation (OP_ASSIGN)
 	  	$$ = op_new(OP_ASSIGN, $1, $3, NULL);
@@ -198,26 +288,36 @@ Expression:
 	| P_LEFT Expression P_RIGHT {                                  // Parenthèses, uniquement utile aux prioritées
 		$$ = $2;
 	  }
-	| Function {                                                   // Appel d'unit comme fonction (OP_UNIT_CALL)
-	  	$$ = $1;
+    | NEW Expression P_LEFT Param_call_list P_RIGHT {              // Appel d'unit comme fonction (OP_UNIT_NEW)
+		Variable *v = var_new(NULL, 0, T_ARGS);
+		v->value.v_llist = $4;
+	  	$$ = op_new(OP_UNIT_NEW, $2, NULL, v);
 	  }
-	| NEW Function {                                               // Appel d'unit comme constructeur (OP_UNIT_NEW)
-	  	$$ = $2;
-	  	$$->type = OP_UNIT_NEW;
-	  }/*
-	| Expression COMMA Expression {                                // a,a construction liste chainée (OP_COMMA)
-	  	$$ = op_new(OP_COMMA, $1, $3, NULL);
-	  }*/
+	| NEW Expression P_LEFT P_RIGHT {                              // Appel d'unit comme fonction (OP_UNIT_NEW)
+	  	$$ = op_new(OP_UNIT_NEW, $2, NULL, NULL);
+	  }
+    | Expression P_LEFT Param_call_list P_RIGHT {                  // Appel d'unit comme fonction (OP_UNIT_CALL)
+		Variable *v = var_new(NULL, 0, T_ARGS);
+		v->value.v_llist = $3;
+	  	$$ = op_new(OP_UNIT_CALL, $1, NULL, v);
+	  }
+	| Expression P_LEFT P_RIGHT {                                  // Appel d'unit comme fonction (OP_UNIT_CALL)
+	  	$$ = op_new(OP_UNIT_CALL, $1, NULL, NULL);
+	  }
 	| IDENTIFIER {                                                 // Accès à une variable (OP_ACCES)
 	  	$$ = op_new(OP_ACCES, NULL, NULL, NULL);
 	  	$$->info.val = $1;
 	  	$$->info.val_h = str_hash($1);
 	  }
-	| ADDR Expression {                                            // Adresse d'une variable (OP_REF_GET)
-	  	$$ = op_new(OP_REF_GET, $2, NULL, NULL);
+	| VAR IDENTIFIER {                                             // Accès à une variable (OP_ACCES)
+	  	$$ = op_new(OP_ACCES_VAR, NULL, NULL, NULL);
+	  	$$->info.val = $2;
+	  	$$->info.val_h = str_hash($2);
 	  }
-	| STAR Expression %prec ADDR_ACCESS {                          // Variable à l'adresse de VAR (OP_REF_ACCESS)
-	  	$$ = op_new(OP_REF_ACCESS, $2, NULL, NULL);
+	| ATTR IDENTIFIER {                                            // Accès à une variable (OP_ACCES)
+	  	$$ = op_new(OP_ACCES_ATTR, NULL, NULL, NULL);
+	  	$$->info.val = $2;
+	  	$$->info.val_h = str_hash($2);
 	  }
 	| Expression POW Expression {                                  // Puissance (OP_MATH_POW)
 	  	$$ = op_new(OP_MATH_POW, $1, $3, NULL);
@@ -291,15 +391,41 @@ Expression:
 	| DUMP Expression {                                            // Dump (OP_OUTPUT_VAR_DUMP)	  	
 		$$ = op_new(OP_OUTPUT_VAR_DUMP, $2, NULL, NULL);
 	  }
+	| Function {                                                   // Déclaration de fonction (OP_UNIT)
+	  	$$ = op_new(OP_UNIT, NULL, NULL, var_new(NULL, 0, T_FUNCTION));
+	  	$$->value->value.v_func = $1; 
+	}
 	;
 
 %%
 
+// Erreur durant l'analyse lexicale (flex) ou syntaxique (yacc)
 int yyerror(const char *s) {
 	int start = tokenStart;
-	int i;
+	int i = 1;
 
-	fputs("..", stdout);
+	if(!p.interactive_mod) {
+		int c = '*';
+
+		rewind(yyin);
+		while(i < yylineno) {
+			while((c = getc(yyin)) != '\n' && c != EOF);
+			i++;
+			if(c == EOF) {
+  				printf("[x] Error | %d: %s: '%s'\n", yylineno, s, yytext);
+  				return 0;
+			}
+		}
+
+	    fputs("> ", stdout);
+
+		while((c = getc(yyin)) != '\n' && c != EOF) {
+			putc(c, stdout);
+		}
+		putc('\n', stdout);
+	}
+
+	fputs("...", stdout);
     for (i = 1; i < start; i++)
     	putc('.', stdout);
     puts("^");
@@ -309,29 +435,44 @@ int yyerror(const char *s) {
   	return 0;
 }
 
+// Début d'un token 
 void beginToken(const char *t) {
 	// Avant le token
 	tokenStart += tokenLength;
 	// Longueur du token
 	tokenLength = strlen(t);
+
 }
 
+// Nouvelle ligne
 void beginTokenNewLine() {
+	// Remise à zéro
 	tokenStart = 0;
 	tokenLength = 0;
 }
 
+// Main
 int main(int argc, char **argv) {
 
+	// Init des args
 	params_init();
 	params_make(argc, argv);
 
-	if(p->interactive_mod) {
+	if(p.interactive_mod) {
+		puts("[i] Starting in interactive mode");
 		ec_init_loc(&ec_obj);
 		ec_init_loc(&ec_tmp);
 		yyparse();
 	} else {
-		puts("[i] Only the interactive mode is now working");
+		puts("[i] Starting in file mode");
+		if(p.file) {
+			yyin = p.file;
+			p.start_parsing = clock();
+			yyparse();
+		} else {
+			puts("[x] No file to read");
+			return 1;
+		}
 	}
 	return 0;
 }

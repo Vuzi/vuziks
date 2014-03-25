@@ -1,0 +1,24 @@
+# Test objet n°3
+# -----------------------------------------
+# Création d'un objet, puis accès
+# à ces variables membres, avec modification
+# du contexte d'une fonction
+# -----------------------------------------
+
+new var foo = function() {
+	new attr a = 42;
+	new attr boo = function() {
+		return a;
+	};
+};
+
+new var o = new foo();
+# En faisant ceci, on 'coupe' le lien entre la fonction
+# et son objet, elle ne donc plus retrouver le a contenu
+# dans 'o', et prend donc la variable locale
+new var boo = o.boo;
+new var a = 10;
+dump o.boo(); # Retourne o.a, soit 42
+dump boo();   # Retourne a, soit 10
+
+return 0;

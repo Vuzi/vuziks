@@ -1,0 +1,16 @@
+# Test fonction n°1
+# -----------------------------------------
+# Création d'une fonction retournant une
+# autre fonction
+# -----------------------------------------
+
+new var foo = function() {
+	new var intern = function() {
+		return 42;
+	};
+	return intern;
+};
+
+new var boo = foo();
+dump boo(); # Doit valoir 42
+return 0;
