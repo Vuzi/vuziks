@@ -102,27 +102,32 @@ var       {char}({char}|{chiffre})*
 "!="	          { beginToken(yytext); return(DIF); }
 "==="	          { beginToken(yytext); return(T_EQUAL); }
 
-"and"|"AND"	      { beginToken(yytext); return(AND); }
-"or"|"OR"	      { beginToken(yytext); return(OR); }
+(?i:and)	      { beginToken(yytext); return(AND); }
+(?i:or)   	      { beginToken(yytext); return(OR); }
 
-"true"|"TRUE"     { beginToken(yytext); yylval.bool = 1; return(BOOL); }
-"false"|"FALSE"	  { beginToken(yytext); yylval.bool = 0; return(BOOL); }
+(?i:true)         { beginToken(yytext); yylval.bool = 1; return(BOOL); }
+(?i:false)	      { beginToken(yytext); yylval.bool = 0; return(BOOL); }
 
 "^"		          { beginToken(yytext); return(POW); }
 "."		          { beginToken(yytext); return(POINT); }
 "@"|"&"		      { beginToken(yytext); return(ADDR); }
   
-"new"|"NEW"	      { beginToken(yytext); return(NEW); }
-"delete"|"DELETE" { beginToken(yytext); return(DELETE); }
-"var"|"VAR"	      { beginToken(yytext); return(VAR); }
-"attr"|"ATTR"	  { beginToken(yytext); return(ATTR); }
+(?i:new)	      { beginToken(yytext); return(NEW); }
+(?i:delete)       { beginToken(yytext); return(DELETE); }
+(?i:var)	      { beginToken(yytext); return(VAR); }
+(?i:attr)    	  { beginToken(yytext); return(ATTR); }
 
-"dump"|"DUMP"	  { beginToken(yytext); return(DUMP); }
+(?i:dump)   	  { beginToken(yytext); return(DUMP); }
 
-"return"|"RETURN" { beginToken(yytext); return(RETURN); }
-"break"|"BREAK"	  { beginToken(yytext); return(BREAK); }
+(?i:return)       { beginToken(yytext); return(RETURN); }
+(?i:break)  	  { beginToken(yytext); return(BREAK); }
 
-"function"|"FUNCTION"	  { beginToken(yytext); return(FUNCTION); }
+(?i:if)           { beginToken(yytext); return(IF); }
+(?i:else)         { beginToken(yytext); return(ELSE); }
+(?i:for)          { beginToken(yytext); return(FOR); }
+(?i:while)        { beginToken(yytext); return(WHILE); }
+
+(?i:function)	  { beginToken(yytext); return(FUNCTION); }
  
 "("		          { beginToken(yytext); return(P_LEFT); }
 ")"		          { beginToken(yytext); return(P_RIGHT); }
