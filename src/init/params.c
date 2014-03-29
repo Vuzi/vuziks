@@ -141,14 +141,14 @@ static int param_make(char* option, char* argument) {
         show_version();
         exit(0);
     } else {
-        printf("[x] Unknown option : '%s'", option);
+        printf("[x] Unknown option : '%s'\n", option);
         return 0;
     }
     return 0;
 }
 
 static void show_version(void) {
-    printf("[i] Vuziks - version %s\n    By G. Villerez & G. Delapres \n\n    Compiled at %s on %s\n",VERSION_NUM, __TIME__,__DATE__);
+    printf("[i] Vuziks - version %s\n    By G. Villerez aka Vuzi & G. Delapres \n\n    Compiled at %s on %s\n",VERSION_NUM, __TIME__,__DATE__);
     #ifdef DEBUG
         puts("[i](Compiled in debug version)");
     #endif

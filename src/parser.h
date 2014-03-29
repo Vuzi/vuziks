@@ -80,13 +80,18 @@ extern int yydebug;
      DELETE = 289,
      IDENTIFIER = 290,
      FUNCTION = 291,
-     DUMP = 292,
-     EXPR_END = 293,
-     BREAK = 294,
-     RETURN = 295,
-     POS = 296,
-     NEG = 297,
-     ADDR_ACCESS = 298
+     IF = 292,
+     ELSE = 293,
+     FOR = 294,
+     WHILE = 295,
+     LOOP = 296,
+     DUMP = 297,
+     EXPR_END = 298,
+     BREAK = 299,
+     RETURN = 300,
+     POS = 301,
+     NEG = 302,
+     ADDR_ACCESS = 303
    };
 #endif
 
@@ -97,6 +102,8 @@ typedef union YYSTYPE
 /* Line 2058 of yacc.c  */
 #line 45 "parser.y"
 
+  Unit_conditional *condition;
+  Unit_loop *loop;
   Unit* function;
   Linked_list* list;
   Operation* op;
@@ -107,7 +114,7 @@ typedef union YYSTYPE
 
 
 /* Line 2058 of yacc.c  */
-#line 111 "parser.tab.h"
+#line 118 "parser.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

@@ -4,333 +4,506 @@
 #include "unit.h"
 
 // Prototypes statiques
-static return_code op_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_tmp, struct s_Operation *op, char *go);
+static return_code unit_eval(Exec_context* ec_obj, Exec_context* ec_var, Linked_list* stmts, Variable* eval_value);
 
 // Point d'entrée principal du programme
-void eval_main(Unit* start) {
+void unit_main(Unit* start) {
     int goodbye = 0;
 
     // Retour & contexte
-    Exec_context ec_obj;
-    Variable var, *var_ref;
+    Exec_context ec_obj, ec_var;
+    Variable eval_value;
 
-    var_init_loc(&var, NULL, 0, T_NULL);
-    var_ref = &var;
+    p.start_exec = clock(); // début timer
 
+    var_init_loc(&eval_value, NULL, 0, T_NULL);
     ec_init_loc(&ec_obj);
+    ec_init_loc(&ec_var);
 
-	if(start) {
-        p.start_exec = clock();
-        switch(unit_function(&var_ref, &ec_obj, NULL, NULL, start)) {
+    switch(unit_eval(&ec_obj, &ec_var, start->statements, &eval_value)) {
+        case RC_WARNING :
+            err_display_last();
+        case RC_BREAK :
+        case RC_OK :
+            p.end_exec = clock(); // fin timer
+            puts("[i] Interpreter stopped (No return value)");
+            break;
+        case RC_ERROR :
+        case RC_CRITICAL:
+            p.end_exec = clock(); // fin timer
+            err_display_last();
+            printf("[x] Error, interpreter stopped with code '%d' \n", e.type);
+            goodbye = (int)e.type;
+            break;
+        case RC_RETURN :
+            p.end_exec = clock(); // fin timer
+            if(eval_value.type == T_NUM)
+                goodbye = (int)(eval_value.value.v_num);
+            else if(eval_value.type == T_BOOL)
+                goodbye = eval_value.value.v_bool;
+            printf("[i] Interpreter stopped (%d) \n", goodbye);
+        default:
+            break;
+    }
+
+    // Libération des valeurs
+    var_empty(&eval_value);
+    ec_empty(&ec_var);
+    ec_empty(&ec_obj);
+
+    // Libération de l'arbre
+    unit_empty(start);
+
+    if(p.show_timer)
+        printf("[i] Executed in %.4fs\n", ((p.end_exec-p.start_exec)/(double)CLOCKS_PER_SEC));
+
+
+    // Fin du programme
+	exit(goodbye); // ou exit ?
+}
+
+// vérifié
+static return_code unit_eval(Exec_context* ec_obj, Exec_context* ec_var, Linked_list* stmts, Variable* eval_value) {
+
+    return_code rc = RC_OK;
+    Variable *save = eval_value;
+
+    // Buffer temporaire
+    Exec_context ec_local; ec_init_loc(&ec_local); ec_local.container = ec_var;
+
+    // Pour chaque statement
+    while(stmts) {
+        // Evaluation
+        switch(stmts->type) {
+            case LLT_OPERATION :
+                rc = op_eval(ec_obj, &ec_local, (Operation*)stmts->value, &eval_value);
+                break;
+            case LLT_CONDITION :
+                rc = unit_cond_eval(ec_obj, &ec_local, (Unit_conditional*)stmts->value, eval_value);
+                break;
+            case LLT_LOOP :
+                // do loop
+                break;
+            case LLT_UNIT :
+                rc = unit_eval(ec_obj, &ec_local, ((Unit*)stmts->value)->statements, eval_value);
+                break;
+            default :
+                err_add(E_CRITICAL, FORBIDDEN_TYPE, "Statement with an unknown type (%x)", stmts->type);
+                rc = RC_CRITICAL;
+                goto eval_end;
+        }
+
+        // Analyse résultats
+        switch(rc) {
             case RC_WARNING :
                 err_display_last();
-            case RC_BREAK :
             case RC_OK :
-                puts("[i] Interpreter stopped (No return value)");
                 break;
-            case RC_ERROR :
-            case RC_CRITICAL:
-                err_display_last();
-                printf("[x] Error, interpreter stopped with code '%d' \n", e.type);
-                goodbye = (int)e.type;
+            case RC_BREAK :
+                rc = RC_OK;
             case RC_RETURN :
-                if(var_ref->type == T_NUM)
-                    goodbye = (int)(var_ref->value.v_num);
-                printf("[i] Interpreter stopped (%d) \n", goodbye);
-            default:
-                break;
+            case RC_ERROR :
+            case RC_CRITICAL :
+                goto eval_end;
+            default :
+                err_add(E_CRITICAL, FORBIDDEN_TYPE, "Unknown evalution return type (%x)", rc);
+                rc = RC_CRITICAL;
+                goto eval_end;
         }
-        p.end_exec = clock();
 
-        unit_empty(start);
-        var_delete(var_ref, 1);
-        ec_empty(&ec_obj);
+        // Suivant statement
+        NEXT(stmts);
 
-        if(p.show_timer)
-            printf("[i] Executed in %.4fs\n", ((p.end_exec-p.start_exec)/(double)CLOCKS_PER_SEC));
-	}
-
-	exit(goodbye);
-}
-
-// Initialise un ec
-return_code ec_init_loc(Exec_context *ec) {
-    if(ec) {
-        ec->caller = NULL;
-        ec->caller_context = NULL;
-        ec->variables = NULL;
-        return RC_OK;
-    } else {
-        err_add(E_CRITICAL, NULL_VALUE, "Creation of an unit with a NULL value");
-        return RC_CRITICAL;
+        // Libération valeur temporaire
+        if(save->type != T_NULL)
+            var_empty(save); // Si on a écrit dans le buffer, c'est forcément une valeur temporaire à vider
+        else
+            eval_value = save; // Si on a pas écrit dans le buffer, c'est certainement que sont pointeur a été utilisé
+                                // pour pointeur une autre valeur, il faut donc le refaire pointer sur le buffer
     }
+
+    // Fin sans return ni erreur
+    ec_empty(&ec_local); // Vidage variables locales
+    if(save->type != T_NULL) var_empty(save);    // Vidage valeur de return (passage a NULL)
+    return rc;
+
+    // Fin avec return/break ou erreur
+    eval_end:
+        if(rc != RC_RETURN && save->type != T_NULL) // Si on ne retourne rien on vide le buffer et la variable de retour
+            var_empty(save);
+
+        ec_empty(&ec_local); // Vidage variables locales
+        return rc;
 }
 
-// Alloue et initialisez un ec
-/*
-return_code ec_init(Exec_context **ec) {
-    if(!(*ec))
-        *ec = (Exec_context*)xmalloc(sizeof(Exec_context));
+// Vérifié
+return_code unit_function(Exec_context *ec_obj, Exec_context *ec_var_caller, Linked_list* args, Unit* function, Variable* eval_value) {
 
-    return ec_init_loc(*ec);
-}*/
-
-// Vide un ec
-return_code ec_empty(Exec_context *ec) {
-    var_empty_llist(ec->variables);
-    return RC_OK;
-}
-
-// Ajoute une variable dans un ec
-return_code ec_add_var(Exec_context* ec, char* name, hash_t name_h, Variable **r) {
-
-    Variable *new_v = NULL;
     return_code rc = RC_OK;
+    Exec_context ec_var;
 
-    rc = var_init(&new_v, name, name_h, T_NULL);
-    new_v->deletable = 1;
+    ec_init_loc(&ec_var); ec_var.container = ec_var_caller;
 
-    if(rc == RC_OK || rc == RC_WARNING) {
-        linked_list_push(&(ec->variables), (void*)new_v);
-        *r = new_v;
-    } else
-        var_delete(new_v, 0);
+    // Récupération des valeurs envoyées
+    Linked_list* expected = function->args;
+
+    // Tant qu'on attend des arguments
+    while(expected) {
+        Variable* arg = (Variable*)expected->value;
+        // Tant qu'on a envoyé des arguments
+        if(args) {
+            // Une évaluation peut soit écrire dans notre buffer, soit utiliser le pointeur pour pointer sur un autre élément
+            Variable var, *var_r = &var;
+            var_init_loc(var_r, NULL, 0, T_NULL);
+
+            // Evaluation
+            switch((rc = op_eval(ec_obj, ec_var_caller, (Operation*)args->value, &var_r))) {
+                case RC_WARNING :
+                    err_display_last();
+                case RC_OK :
+                    break;
+                case RC_BREAK :
+                case RC_RETURN :
+                    goto eval_quit;
+                case RC_ERROR :
+                case RC_CRITICAL :
+                    if(var.type != T_NULL) var_empty(&var); // Libération
+                    goto eval_quit;
+                default :
+                    if(var.type != T_NULL) var_empty(&var); // Libération
+                    err_add(E_CRITICAL, UNKOWN_TYPE, "Unknown evalution return type (%x)", rc);
+                    rc = RC_CRITICAL;
+                    goto eval_quit;
+            }
+
+            // Ajout à la liste temporaire par copie
+            ec_push_var(&ec_var, var_copy_data(var_r, var_new(arg->name, arg->name_h, T_NULL)));
+
+            // Libération de notre buffer
+            if(var.type != T_NULL)
+                var_empty(&var);
+
+            NEXT(args);
+        } else {
+            // Ajout à la liste temporaire par copie
+            ec_push_var(&ec_var, var_new(arg->name, arg->name_h, T_NULL));
+        }
+
+        NEXT(expected);
+    }
+
+    // Evaluation
+    switch((rc = unit_eval(ec_obj, &ec_var, function->statements, eval_value))) {
+        case RC_WARNING :
+            err_display_last();
+        case RC_BREAK :
+        case RC_RETURN :
+            rc = RC_OK;
+        case RC_OK :
+            break;
+        case RC_ERROR :
+        case RC_CRITICAL :
+            break;
+        default :
+            err_add(E_CRITICAL, UNKOWN_TYPE, "Unknown evalution return type (%x)", rc);
+            rc = RC_CRITICAL;
+    }
+
+    eval_quit:
+        ec_empty(&ec_var);
+        return rc;
+}
+
+// Vérifié
+return_code unit_constructor(Exec_context *ec_obj_caller, Exec_context *ec_var_caller, Linked_list* args, Unit* function, Variable* eval_value) {
+
+   return_code rc = RC_OK;
+
+    // Futur obj
+    Object *o = var_new_object(NULL);
+
+    ec_init_loc(&o->ec);
+    o->ec.container = ec_obj_caller;
+
+    switch((rc = unit_function(&o->ec, ec_var_caller, args, function, eval_value))) {
+        case RC_WARNING :
+            err_display_last();
+        case RC_BREAK :
+        case RC_RETURN :
+            rc = RC_OK;
+        case RC_OK :
+            if(eval_value->type != T_NULL) var_empty(eval_value);
+            // Création de l'objet
+            o->ec.container = NULL;
+            eval_value->type = T_OBJECT;
+            eval_value->value.v_obj = o;
+            eval_value->container = ec_obj_caller;
+            return rc; // On sort ici
+        case RC_ERROR :
+        case RC_CRITICAL :
+            break;
+        default :
+            err_add(E_CRITICAL, FORBIDDEN_TYPE, "Unknown evalution return type (%x)", rc);
+            rc = RC_CRITICAL;
+    }
+
+    // Erreur lors de l'appel au constructeur, libération
+    if(eval_value->type != T_NULL) var_empty(eval_value);
+    ec_empty(&o->ec);
+    xfree(o);
 
     return rc;
 }
 
-// Retourne une variable contenue dans un des deux ec courants
-return_code ec_var_access(Exec_context* ec_obj, Exec_context* ec_tmp, operation_type type, char* name, hash_t name_h, Variable **r) {
-    Variable *tmp = NULL;
-
-    if(type == OP_ACCES || type == OP_ACCES_ATTR)
-        tmp = var_search_ec(ec_obj, name, name_h);
-
-    if((!tmp) && (type == OP_ACCES || type == OP_ACCES_VAR))
-        tmp = var_search_ec(ec_tmp, name, name_h);
-
-    if(!tmp) (*r)->type = T_NONEXISTENT, (*r)->name = name;
-    else     (*r) = tmp;
-
-    return RC_OK;
-}
-
-// Supprime une variable d'un ec, et la met dans r
-return_code ec_pop_var(Exec_context* ec, char* name, hash_t name_h, Variable** r) {
-
-    Linked_list *ll = ec->variables, *prec = NULL;
-
-    while(ll) {
-        if(( ((Variable*)ll->value)->name_h == name_h ) && !strcmp(((Variable*)ll->value)->name, name)) {
-            // On sort la valeur
-            *r = (Variable*)ll->value;
-            // On supprime son maillon
-            if(prec) prec->next = ll->next;
-            else     ec->variables = ll->next;
-            xfree(ll);
-
-            return RC_OK;
-        }
-        prec = ll;
-        ll = ll->next;
-    }
-
-			if(p.show_timer)
-				printf("[i] Parsed in %.4fs\n", ((p.end_parsing-p.start_parsing)/(double)CLOCKS_PER_SEC));
-    if(ec->caller_context)
-        return ec_pop_var(ec->caller_context, name, name_h, r);
-    else {
-        (*r)->type = T_NONEXISTENT;
-        err_add(E_WARNING, CANT_ACCESS, "Couldn't find var '%s' for deletion", name);
-        return RC_WARNING;
-    }
-}
-
+// vérifié
 // Alloue et initialise une nouvelle unité
-Unit* unit_new(Linked_list *operations, Linked_list *args) {
+Unit* unit_new(Linked_list *statements, Linked_list *args) {
     Unit* u = (Unit*)xmalloc(sizeof(Unit));
 
     u->args = args;
-    u->operations = operations;
+    u->statements = statements;
 
     return u;
 }
 
+// vérifié
 // Vide une unité
-return_code unit_empty(Unit *u) {
-    var_empty_args(u->operations);
-    var_empty_llist(u->args);
+void unit_empty(Unit *u) {
+
+    Linked_list* tmp = NULL;
+
+    while(u->statements) {
+        switch(u->statements->type) {
+            case LLT_UNIT :
+                unit_empty((Unit*)u->statements->value);
+                xfree((Unit*)u->statements->value);
+                break;
+            case LLT_CONDITION :
+                unit_cond_delete((Unit_conditional*)u->statements->value);
+                break;
+            case LLT_LOOP :
+                // todo
+                break;
+            case LLT_OPERATION :
+                op_delete((Operation*)u->statements->value);
+                break;
+            default :
+                break;
+        }
+        tmp = u->statements;
+        NEXT(u->statements);
+        xfree(tmp);
+    }
+
+    while(u->args) {
+        tmp = u->args;
+        if(((Variable*)(tmp->value))->name) xfree(((Variable*)(tmp->value))->name);
+        var_delete(((Variable*)(tmp->value)));
+        NEXT(u->args);
+        xfree(tmp);
+    }
+
+}
+
+// vérifié
+// Initialise un ec
+void ec_init_loc(Exec_context *ec) {
+    ec->container = NULL;
+    ec->variables = NULL;
+}
+
+// Vérifié
+// Vide un ec
+void ec_empty(Exec_context *ec) {
+    var_empty_llist(ec->variables);
+}
+
+// Vérifié
+// Ajoute une variable dans un ec -- on stocke et retourne un pointeur
+return_code ec_add_var(Exec_context* ec, Operation_identifier* id, Variable** eval_value) {
+
+    // Création valeur (T_NULL par défaut)
+    *eval_value = var_new(id->s, id->s_h, T_NULL);
+
+    // Ajout au contexte
+    linked_list_push(&(ec->variables), LLT_VARIABLE, (void*)(*eval_value));
 
     return RC_OK;
 }
 
-// Unit comme une fonction
-return_code unit_function(Variable **r, Exec_context *ec_obj, Exec_context *caller_tmp, Linked_list *args, Unit *u) {
-    Exec_context ec_tmp;
-    return_code rc = RC_OK;
-    Variable *r_save = *r;
+// Vérifié
+void ec_push_var(Exec_context* ec, Variable* v) {
+    linked_list_push(&(ec->variables), LLT_VARIABLE, (void*)v);
+}
 
-    ec_init_loc(&ec_tmp);
-    ec_tmp.caller_context = caller_tmp;
+// vérifié
+// Retourne une variable contenue dans un des deux ec courants
+return_code ec_var_access(Exec_context* ec_obj, Exec_context* ec_tmp, operation_type type, Operation_identifier* id, Variable** eval_value) {
+    Variable *tmp = NULL;
 
-    if(u && (*r) && ec_obj) {
-        Linked_list* ll = u->args;
-        Variable *v = NULL;
+    if(type == OP_ACCES || type == OP_ACCES_ATTR)
+        tmp = var_search_ec(ec_obj, id->s, id->s_h);
 
-        // Arguments (liste d'opérations)
+    if((!tmp) && (type == OP_ACCES || type == OP_ACCES_VAR))
+        tmp = var_search_ec(ec_tmp, id->s, id->s_h);
+
+    if(!tmp) (*eval_value)->type = T_NONEXISTENT, (*eval_value)->name = id->s;
+    else     (*eval_value) = tmp; // Si on trouve on fait pointer dessus
+
+    return RC_OK;
+}
+
+// Vérifié
+// Supprime une variable d'un ec, et la met dans le buffer eval_value
+return_code ec_pop_var(Exec_context* ec, Operation_identifier* id, Variable* eval_value) {
+
+    Variable* tmp = NULL;
+
+    // Recherche
+    Linked_list* ll = ec->variables, *last = NULL;
+
+    while(ec) {
         while(ll) {
-            if(args) {
-                // Variable buffer
-                Variable tmp;
-                Variable *tmp_ref = &tmp;
-                var_init_loc(tmp_ref, NULL, 0, T_NULL);
+            if( ((Variable*)ll->value)->name_h == id->s_h && !strcmp(((Variable*)ll->value)->name, id->s) ) {
+                // Valeur cherchée
+                tmp = ((Variable*)ll->value);
 
-                // Evaluation de la branche
-                op_eval((Operation*)args->value, ec_obj, caller_tmp, &tmp_ref);
+                // Décrochage de la valeur
+                if(last)
+                    last->next = ll->next;
+                else
+                    ec->variables = ll->next;
 
-                // On copie la valeur dans le buffer de la fonction (avec le nom)
-                v = var_copy(tmp_ref);
-
-                v->name = ((Variable*)ll->value)->name;
-                v->name_h = ((Variable*)ll->value)->name_h;
-
-                // On supprime le premier buffer
-                var_delete(tmp_ref,1);
-
-                args = args->next;
-            } else {
-                // Sinon celui par défaut (en copie)
-                v = var_copy((Variable*)ll->value);
+                goto search_result;
             }
-            // Ajout
-            linked_list_push(&(ec_tmp.variables), (void*)v);
-            // Suivant
-            ll = ll->next;
+            last = ll;
+            NEXT(ll);
         }
+        ec = ec->container;
+    }
 
-        ll = u->operations;
+    // Pas trouvé
+    eval_value->type = T_NONEXISTENT;
+    err_add(E_WARNING, CANT_ACCESS, "Couldn't find var '%s' for deletion", id->s);
+    return RC_WARNING;
 
-        // Evaluation (pour chaque opération)
-        while(ll) {
-            switch((rc = op_eval((Operation*)ll->value, ec_obj, &ec_tmp, r)) ) {
-                case RC_WARNING :
-                    err_display_last();
-                case RC_OK :
-                case RC_BREAK :
-                    var_delete(*r, 1);
-                   *r = r_save;
-                    break;
-                case RC_CRITICAL :
-                case RC_ERROR :
-                    var_delete(*r, 1);
-                    *r = r_save;
-                case RC_RETURN :
-                    ec_empty(&ec_tmp);
-                    return rc;
-                default :
-                    err_add(E_CRITICAL, NULL_VALUE, "Unknown type of operation return");
-                    var_delete(*r, 1);
-                    *r = r_save;
-                    ec_empty(&ec_tmp);
-                    return RC_CRITICAL;
-            }
-            var_init_loc(*r, NULL, 0, T_NULL);
+    // Trouvé
+    search_result:
+        // Recopie des valeirs
+        eval_value->type = tmp->type;
+        eval_value->value = tmp->value;
 
-            ll = ll->next;
-        }
-
-        ec_empty(&ec_tmp);
+        // Libération variable, on peut car le contenu de la variable à été récupéré (et sera libéré correctement plus tard si non stocké)
+        xfree(tmp);
 
         return RC_OK;
-
-    } else {
-        err_add(E_CRITICAL, NULL_VALUE, "NULL value in a function evaluation");
-        return RC_CRITICAL;
-    }
 }
 
-// Unit comme un constructeur
-return_code unit_constructor(Exec_context *ec_obj, Exec_context *caller_obj, Exec_context *caller_tmp, Linked_list *args,  Unit *u) {
+Unit_conditional* unit_cond_new(Operation* cond, Unit_conditional* before, Linked_list* statements) {
+    Unit_conditional* uc = xmalloc(sizeof(Unit_conditional));
 
-    return_code rc = RC_OK;
-    Variable r; // Valeur de retour ignorée
-    Variable *r_link = &r;
-    var_init_loc(r_link, NULL, 0, T_NULL);
-    r_link->deletable = 0;
+    uc->condition = cond;
+    uc->next = NULL;
+    uc->statements = statements;
 
-    ec_obj->caller_context = caller_obj;
+    if(before) before->next = uc;
 
-    rc = unit_function(&r_link, ec_obj, caller_tmp, args, u);
-    var_delete(&r, 1);
-
-    ec_obj->caller_context = NULL;
-
-    return rc;
+    return uc;
 }
 
-// Evaluation d'unit conditonnel
-return_code unit_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context *caller_tmp, Unit_conditional *uc) {
-    Exec_context ec_tmp;
+void unit_cond_delete(Unit_conditional* uc) {
+    op_delete(uc->condition);
+
+    var_empty_args(uc->statements);
+
+    if(uc->next) unit_cond_delete(uc->next);
+
+    xfree(uc);
+}
+
+return_code unit_cond_eval(Exec_context *ec_obj, Exec_context *ec_var, Unit_conditional *uc, Variable* eval_value) {
+
     return_code rc = RC_OK;
-    Variable *r_save = *r;
+    Variable* save = eval_value;
 
-    ec_init_loc(&ec_tmp);
-    ec_tmp.caller_context = caller_tmp;
-
-    while(uc) {
-        // Si on a une condition
+    do {
+        // Opération pour récupérer la condition
         if(uc->condition) {
-            switch((rc = op_eval(uc->condition, ec_obj, &ec_tmp, r))) {
+            switch((rc = op_eval(ec_obj, ec_var, uc->condition, &eval_value))) {
                 case RC_WARNING :
                     err_display_last();
+                    rc = RC_OK;
                 case RC_OK :
-                    var_delete(*r, 1); *r = r_save;
-
-                    if((*r)->type == T_BOOL) {
-                        // Si condition valide
-                        if((*r)->value.v_bool) {
-                            Linked_list *ll = uc->operations;
-                            while(ll) {
-                                switch((rc = op_eval((Operation*)ll->value, ec_obj, &ec_tmp, r)) ) {
-                                    case RC_WARNING :
-                                        err_display_last();
-                                    case RC_OK :
-                                        break;
-                                    case RC_BREAK :
-                                    case RC_CRITICAL :
-                                    case RC_ERROR :
-                                    case RC_RETURN :
-                                    default :
-                                        var_delete(*r, 1); *r = r_save;
-                                        ec_empty(&ec_tmp);
-                                        return rc;
-                                }
-                                var_delete(*r, 1); *r = r_save; // On restaure r pour ne pas écrire n'importe où
-
-                                ll = ll->next;
-                            }
-                            return RC_OK;
-                        }
-                    } else {
-                        err_add(E_ERROR, FORBIDDEN_TYPE, "Only boolean value can be used in a condition");
-                        return E_ERROR;
-                    }
+                    break;
                 case RC_BREAK :
                 case RC_CRITICAL :
                 case RC_ERROR :
                 case RC_RETURN :
+                    goto cond_end;
                 default :
-                    var_delete(*r, 1); *r = r_save; // On restaure r pour ne pas écrire n'importe où
-                    ec_empty(&ec_tmp);
-                    return rc;
+                    err_add(E_CRITICAL, FORBIDDEN_TYPE, "Unknown evalution return type (%x)", rc);
+                    rc = RC_CRITICAL;
+                    goto cond_end;
             }
-        }
-        uc = uc->next;
-    }
 
+            // Test de la condition
+            switch(eval_value->type) {
+                case T_BOOL :
+                    if(eval_value->value.v_bool)
+                        goto cond_true;
+                    break;
+                case T_NUM :
+                    if(eval_value->value.v_bool != 0.0)
+                        goto cond_true;
+                    break;
+                case T_NONEXISTENT :
+                case T_NULL :
+                    break;
+                default :
+                    // Cas de variables complexes, forcément vrai
+                    goto cond_true;
+            }
+
+            if(eval_value->type != T_NULL) var_empty(eval_value); // Libération
+            else eval_value = save;
+
+        } else // else
+            goto cond_true;
+
+        NEXT(uc);
+    } while(uc);
+
+    // Aucune condition validée, on quitte
     return rc;
+
+    // Condition validée
+    cond_true:
+        switch((rc = unit_eval(ec_obj, ec_var, uc->statements, eval_value))) {
+             case RC_WARNING :
+                    err_display_last();
+            case RC_BREAK :
+                    rc = RC_OK;
+            case RC_OK :
+                break;
+            case RC_RETURN :
+                return rc;
+            case RC_CRITICAL :
+            case RC_ERROR :
+                goto cond_end;
+            default :
+                err_add(E_CRITICAL, FORBIDDEN_TYPE, "Unknown evalution return type (%x)", rc);
+                rc = RC_CRITICAL;
+                goto cond_end;
+        }
+
+    cond_end:
+        if(eval_value->type != T_NULL) var_empty(eval_value); // Libération
+        else eval_value = save;
+
+        return rc;
 }
 
+/*
 // Evaluation condition
 static return_code op_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context *caller_tmp, struct s_Operation *op, char *go) {
     return_code rc = RC_OK;
@@ -475,3 +648,4 @@ return_code unit_loop_eval(Variable **r, Exec_context *ec_obj, Exec_context *cal
     return RC_OK;
 }
 
+*/

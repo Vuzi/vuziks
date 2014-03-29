@@ -5,7 +5,7 @@
 # -----------------------------------------
 
 new var double = function(a) {
-	return a * 2;
+	return  a*2;
 };
 
 return double(15); # Quitte le programme en renvoyant 15 * 2

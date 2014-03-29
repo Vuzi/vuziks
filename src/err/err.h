@@ -16,7 +16,7 @@ typedef enum e_return_code {
 
 // Type d'erreur
 typedef enum e_error_type {
-    FORBIDDEN_TYPE=1, NULL_VALUE=2, UNKOWN_TYPE=3, OP_IMPOSSIBLE=4, CANT_ACCESS=5
+    FORBIDDEN_TYPE=1, NULL_VALUE=2, UNKOWN_TYPE=3, OP_IMPOSSIBLE=4, CANT_ACCESS=5, USELESS_ACTION=6
 } error_type;
 
 // Niveau d'erreur

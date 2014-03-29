@@ -1,0 +1,11 @@
+# Test condition n°1
+# -----------------------------------------
+# Retourne le plus grand entre a et b
+# -----------------------------------------
+
+new var a = 20; new var b = 42;
+
+if( a >= b ) {
+	return a;
+} else
+	return b;

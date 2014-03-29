@@ -18,7 +18,7 @@
 #define OP_MATH 0x200
 #define OP_MATH_UNARY 0x400
 #define OP_LOG 0x800
-#define OP_MATH_OR_LOG_TYPE 0x1E00
+#define OP_MATH_OR_LOG_TYPE 0xE00
 #define OP_VAR 0x2000
 #define OP_OUTPUT 0x8000
 
@@ -56,31 +56,30 @@ typedef enum e_operation_type {
 
 } operation_type;
 
-#include "variableOp.h"
 
 typedef struct s_Variale Variable;
 
 // Information de l'opération (déclarations & numéro de ligne)
-typedef struct s_Operation_info {
-    char* val;
-    hash_t val_h;
-    unsigned int line;
-} Operation_info;
+typedef struct s_Operation_identifier {
+    char* s;
+    hash_t s_h;
+} Operation_identifier;
 
+#include "variableOp.h"
 // Opération (noed de l'arbre)
 typedef struct s_Operation {
 	struct s_Operation *operations[2];
+	ptr_type operations_types[2];
 	operation_type type;
-    Operation_info info;
-	Variable* value;
+    Operation_identifier identifier;
+    Variable* value;
 } Operation;
 
 // Prototypes
-return_code op_delete(Operation *op);
+return_code op_eval(Exec_context* ec_obj, Exec_context* ec_var, Operation* op, Variable** eval_value);
+
 return_code op_init_loc(Operation *op, operation_type type, Operation *left, Operation *right, Variable *value);
-return_code op_init(Operation **op, operation_type type, Operation *left, Operation *right, Variable *value);
 Operation* op_new(operation_type type, Operation *left, Operation *right, Variable *value);
-return_code op_eval(Operation *op, Exec_context *ec_obj, Exec_context *ec_tmp, Variable **r) ;
-return_code op_unit(Variable **r, Operation* op, Variable **var_r, Exec_context *ec_obj);
+void op_delete(Operation *op);
 
 #endif // _H_OPERATION

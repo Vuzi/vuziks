@@ -29,6 +29,8 @@ const char* language_type_debug(language_type l) {
             return "function";
         case T_OBJECT:
             return "object";
+        case T_ARGS:
+            return "arguments";
         case T_NONEXISTENT:
             return "non-existent";
         default :
@@ -123,16 +125,36 @@ const char* operation_type_debug(operation_type o) {
 // Affichage debug d'unité
 void unit_dump(Unit *u) {
 
-    Linked_list *ll = u->operations;
+    Linked_list *ll = u->statements;
     debug_pr_lvl(), puts(">unit :");
 
-    debug_pr_lvl(), puts("  operations : ");
+    debug_pr_lvl(), puts("  statements : ");
+    debug_lvl++;
+
     while(ll) {
-        debug_lvl++;
-        op_dump((Operation*)(ll->value));
+        switch(ll->type) {
+            case LLT_UNIT :
+                unit_dump((Unit*)(ll->value));
+                break;
+            case LLT_OPERATION :
+                op_dump((Operation*)(ll->value));
+                break;
+            case LLT_VARIABLE :
+                var_dump((Variable*)(ll->value));
+                break;
+            case LLT_CONDITION :
+                unit_cond_dump((Unit_conditional*)(ll->value));
+                break;
+            case LLT_LOOP :
+                // a faire
+                break;
+            default :
+                debug_pr_lvl(), puts(">(error type statement)");
+        }
         ll = ll->next;
-        debug_lvl--;
     }
+
+    debug_lvl--;
 }
 
 // Affichage debug d'opération
@@ -143,12 +165,12 @@ void op_dump(Operation *o) {
     debug_pr_lvl(), printf("  type : %s (%x)\n", operation_type_debug(o->type), o->type);
 
     // Valeur
-    if(o->info.val) {
-        debug_pr_lvl(), printf("  info.val : %s\n", o->info.val ? o->info.val : "(null)");
-        debug_pr_lvl(), printf("  info.val_h : %lu\n", (long unsigned)o->info.val_h);
+    if(o->identifier.s) {
+        debug_pr_lvl(), printf("  info.val : %s\n", o->identifier.s ? o->identifier.s : "(null)");
+        debug_pr_lvl(), printf("  info.val_h : %lu\n", (long unsigned)o->identifier.s_h);
     }
-    if(o->info.line)
-        debug_pr_lvl(), printf("  info.line : %u\n", o->info.line);
+    /*if(o->info.line)
+        debug_pr_lvl(), printf("  info.line : %u\n", o->info.line);*/
 
     // Variable
     if(o->value) {
@@ -162,13 +184,14 @@ void op_dump(Operation *o) {
     if(o->operations[0]) {
         debug_pr_lvl(), printf("  left operation : \n");
         debug_lvl++;
-        op_dump(o->operations[0]);
+        op_dump((Operation*)o->operations[0]);
         debug_lvl--;
+
     }
     if(o->operations[1]) {
         debug_pr_lvl(), printf("  right operation : \n");
         debug_lvl++;
-        op_dump(o->operations[1]);
+        op_dump((Operation*)o->operations[1]);
         debug_lvl--;
     }
 }
@@ -182,7 +205,6 @@ void var_dump(Variable *v) {
         else puts(" <anonymous> :");
         debug_pr_lvl(), printf("  name_h : %lu\n", (long unsigned)v->name_h);
         debug_pr_lvl(), printf("  type : %s\n", language_type_debug(v->type));
-        debug_pr_lvl(), printf("  deletable : %d\n", v->deletable);
         debug_pr_lvl(),  fputs("  value : ", stdout);
 
         switch(v->type) {
@@ -205,7 +227,7 @@ void var_dump(Variable *v) {
             case T_FUNCTION:
                 puts("function : ");
                 debug_lvl++;
-               // unit_dump(v->value.v_func);
+                unit_dump(v->value.v_func);
                 debug_lvl--;
                 break;
             case T_OBJECT:
@@ -243,4 +265,52 @@ void var_obj_dump(Object *o) {
 
     } else
         debug_pr_lvl(), fputs("  (null)\n", stdout);
+}
+
+void unit_cond_dump(Unit_conditional* uc) {
+
+    Linked_list* ll = uc->statements;
+
+    debug_pr_lvl(), puts(">conditional unit");
+    debug_pr_lvl(), puts("  condition :");
+        if(uc->condition) {
+            debug_lvl++;
+            op_dump(uc->condition);
+            debug_lvl--;
+        } else
+            debug_pr_lvl(), puts("  (none)");
+
+
+
+    debug_pr_lvl(), puts("  statements : ");
+    debug_lvl++;
+
+    while(ll) {
+        switch(ll->type) {
+            case LLT_UNIT :
+                unit_dump((Unit*)(ll->value));
+                break;
+            case LLT_OPERATION :
+                op_dump((Operation*)(ll->value));
+                break;
+            case LLT_VARIABLE :
+                var_dump((Variable*)(ll->value));
+                break;
+            case LLT_CONDITION :
+                unit_cond_dump((Unit_conditional*)(ll->value));
+                break;
+            case LLT_LOOP :
+                // a faire
+                break;
+            default :
+                debug_pr_lvl(), puts(">(error type statement)");
+        }
+        ll = ll->next;
+    }
+
+    debug_lvl--;
+
+    if(uc->next)
+        unit_cond_dump(uc->next);
+
 }

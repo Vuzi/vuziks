@@ -22,7 +22,6 @@ static return_code var_op_or_and(Variable *a, Variable *b, Variable *r, operatio
 static return_code var_op_not(Variable *a, Variable *r);
 static return_code var_op_exist(Variable *a, Variable *r);
 static return_code var_op_log(Variable *a, Variable *b, Variable *r, operation_type type);
-static return_code var_op_assign(Variable *a, Variable *b, Variable **r);
 
 // Opération
 static return_code var_op_add(Variable *a, Variable *b, Variable *r) {
@@ -70,28 +69,29 @@ static return_code var_op_modulo(Variable *a, Variable *b, Variable *r) {
     return RC_OK;
 }
 
+// vérifié
 // Operation mathématique
-static return_code var_op_math(Variable *a, Variable *b, Variable *r, operation_type type) {
+static return_code var_op_math(Variable *a, Variable *b, Variable *v, operation_type type) {
 
     if(a->type == T_NUM && a->type == b->type) {
 
-        r->type = T_NUM;
+        v->type = T_NUM;
 
         switch(type) {
             case OP_MATH_PLUS :
-                return var_op_add(a, b, r);
+                return var_op_add(a, b, v);
             case OP_MATH_MINUS :
-                return var_op_min(a, b, r);
+                return var_op_min(a, b, v);
             case OP_MATH_MULT :
-                return var_op_mult(a, b, r);
+                return var_op_mult(a, b, v);
             case OP_MATH_POW :
-                return var_op_pow(a, b, r);
+                return var_op_pow(a, b, v);
             case OP_MATH_DIV :
-                return var_op_div(a, b, r);
+                return var_op_div(a, b, v);
             case OP_MATH_INTDIV :
-                return var_op_intdiv(a, b, r);
+                return var_op_intdiv(a, b, v);
             case OP_MATH_MODULO :
-                return var_op_modulo(a, b, r);
+                return var_op_modulo(a, b, v);
             default :
                 err_add(E_CRITICAL, UNKOWN_TYPE, "Unknown type of operation (%x) : the operation type cannot be resolved as a known type", type);
                 return RC_ERROR;
@@ -114,24 +114,25 @@ static return_code var_op_un_m(Variable *a, Variable *r) {
     return RC_OK;
 }
 
+// Vérifié
 // Operation mathématique unaire
-static return_code var_op_math_unary(Variable *a,Variable *r, operation_type type) {
+static return_code var_op_math_unary(Variable *a,Variable *v, operation_type type) {
 
     if(a->type == T_NUM) {
 
-        r->type = T_NUM;
+        v->type = T_NUM;
 
         switch(type) {
             case OP_MATH_P_UNARY :
-                return var_op_un_p(a, r);
+                return var_op_un_p(a, v);
             case OP_MATH_M_UNARY :
-                return var_op_un_m(a, r);
+                return var_op_un_m(a, v);
             default :
-                err_add(E_CRITICAL, UNKOWN_TYPE, "Unknown type of operation (%x) : the operation type cannot be resolved as a known type", type);
+                err_add(E_CRITICAL, UNKOWN_TYPE, "Unknown type of unary operation (%x) : the operation type cannot be resolved as a known type", type);
                 return RC_ERROR;
         }
     } else {
-        err_add(E_CRITICAL, FORBIDDEN_TYPE, "Operation with a forbidden type (%s) : only digital type can use mathematical operator", language_type_debug(a->type));
+        err_add(E_CRITICAL, FORBIDDEN_TYPE, "Operation with a forbidden type (%s) : only digital type can use unary mathematical operator", language_type_debug(a->type));
         return RC_ERROR;
     }
 }
@@ -189,7 +190,7 @@ static return_code var_op_equal(Variable *a, Variable *b, Variable *r, operation
                 r->value.v_bool = (a->value.v_func == b->value.v_func ? 1 : 0);
                 break;
             case T_OBJECT :
-                r->value.v_bool = (&(a->value.v_obj) == &(b->value.v_obj) ? 1 : 0);
+                r->value.v_bool = (a->value.v_obj == b->value.v_obj ? 1 : 0);
                 break;
             default :
                 err_add(E_CRITICAL, UNKOWN_TYPE, "Equality comparison with an unknown variable type (%x) : the type compared cannot be resolved as a known variable type", type);
@@ -263,26 +264,26 @@ static return_code var_op_exist(Variable *a, Variable *r) {
 }
 
 // Opération logique
-static return_code var_op_log(Variable *a, Variable *b, Variable *r, operation_type type) {
+static return_code var_op_log(Variable *a, Variable *b, Variable *v, operation_type type) {
 
     switch(type) {
         case OP_LOG_GT :
         case OP_LOG_GE :
         case OP_LOG_LT :
         case OP_LOG_LE :
-            return var_op_comp(a, b, r, type);
+            return var_op_comp(a, b, v, type);
         case OP_LOG_EQ :
         case OP_LOG_DIF :
-            return var_op_equal(a, b, r, type);
+            return var_op_equal(a, b, v, type);
         case OP_LOG_TYPE :
-            return var_op_type(a, b, r);
+            return var_op_type(a, b, v);
         case OP_LOG_AND :
         case OP_LOG_OR :
-            return var_op_or_and(a, b, r, type);
+            return var_op_or_and(a, b, v, type);
         case OP_LOG_NOT :
-            return var_op_not(a, r);
+            return var_op_not(a, v);
         case OP_LOG_EXIST :
-            return var_op_exist(a, r);
+            return var_op_exist(a, v);
         default :
             err_add(E_CRITICAL, UNKOWN_TYPE, "Unknown type of logical operation : the operation type cannot be resolved as a known type");
             return RC_ERROR;
@@ -290,36 +291,79 @@ static return_code var_op_log(Variable *a, Variable *b, Variable *r, operation_t
 }
 
 // Accès à un attribut
-return_code var_op_attr_access(Variable *a, const char* name, hash_t name_h, Variable **r) {
+return_code var_op_attr_access(Variable *a, Operation_identifier *id, Variable **eval_value) {
     if(a->type == T_NONEXISTENT) {
-        err_add(E_ERROR, FORBIDDEN_TYPE, "Cannot access member variable of a non-existent variable : '%s'", a->name);
+        err_add(E_ERROR, FORBIDDEN_TYPE, "Cannot access member variable of a non-existent variable : '%s'", var_name(a));
         return RC_ERROR;
     } else {
         if(a->type == T_OBJECT) {
-            Variable *v = (a->value.v_obj ? var_search(a->value.v_obj->ec.variables, name, name_h) : NULL);
+            Variable *v = (a->value.v_obj ? var_search(a->value.v_obj->ec.variables, id->s, id->s_h) : NULL);
             if(v) {
-                *r = v;
+                *eval_value = v;
                 return RC_OK;
             } else {
-                // A mieux faire
-                err_add(E_ERROR, CANT_ACCESS, "Cannot access member variable '%s' (hash : %lu)", name, (long unsigned)name_h);
-                return RC_ERROR;
+                (*eval_value)->type = T_NONEXISTENT; (*eval_value)->name = id->s;
+                err_add(E_WARNING, CANT_ACCESS, "Cannot access member variable '%s' in object '%s'", id->s, var_name(a));
+                return RC_WARNING;
             }
         } else {
-            err_add(E_ERROR, FORBIDDEN_TYPE, "Cannot access member variable using a non-objet variable");
+            err_add(E_ERROR, FORBIDDEN_TYPE, "Cannot access member variable (%s) using a non-objet variable (%s - %s)",
+                    id->s, var_name(a), language_type_debug(a->type));
             return RC_ERROR;
         }
     }
 }
 
+// vérifié
+// Copie une variable dans v en vue de la retourner
+return_code var_op_return(Variable *a, Variable* eval_value) {
+    // On vérifie si le type est retournable
+    if(a->type != T_NONEXISTENT) {
+        switch(a->type) {
+            // Cas par recopie simple
+            case T_NULL :
+            case T_NUM :
+            case T_BOOL :
+            case T_FUNCTION :
+                eval_value->value = a->value;
+                eval_value->type= a->type;
+                return RC_OK;
+            // Cas par recopie de référence
+            case T_OBJECT :
+                eval_value->value.v_obj = a->value.v_obj;
+                eval_value->value.v_obj->n_links++;
+                eval_value->type= a->type;
+                return RC_OK;
+            case T_LINKEDLIST :
+                // A refaire
+                //var_op_assign_llist(a, b);
+                eval_value->type= a->type;
+                return RC_OK;
+            case T_ARRAY :
+                // A refaire
+                // var_op_assign_array(a, b);
+                eval_value->type= a->type;
+                return RC_OK;
+            default :
+                err_add(E_CRITICAL, UNKOWN_TYPE, "Unknown type (%x) of returned variable", a->type);
+                return RC_ERROR;
+        }
+
+    } else {
+        err_add(E_WARNING, FORBIDDEN_TYPE, "Cannot return non-existent value (null value will be returned)");
+        return RC_WARNING;
+    }
+}
+
+// Vérifié
 // Assigne b dans a, sans modifier l'adresse de a (correspond au a = b )
-return_code var_op_assign(Variable *a, Variable *b, Variable **r) {
+return_code var_op_assign(Variable* a, Variable* b, Variable** eval_value) {
 
     // On vérifie si a est déclaré
     if(a->name_h != 0) {
         // On vérifie si le type est affectable
         if(b->type != T_NONEXISTENT) {
-            *r = a;
+            *eval_value = a;
             switch(b->type) {
                 // Cas par recopie simple
                 case T_NULL :
@@ -341,6 +385,7 @@ return_code var_op_assign(Variable *a, Variable *b, Variable **r) {
                     a->type= b->type;
                     return RC_OK;
                 case T_ARRAY :
+                    // A refaire
                     // var_op_assign_array(a, b);
                     a->type= b->type;
                     return RC_OK;
@@ -354,9 +399,9 @@ return_code var_op_assign(Variable *a, Variable *b, Variable **r) {
             return RC_ERROR;
         }
     } else {
-        // On vérifie si le type est affectable
-        if(b->type != T_NONEXISTENT) {
-            err_add(E_ERROR, FORBIDDEN_TYPE, "Cannot assign value of type nonexistent (%s)", var_name(b));
+        // On vérifie si le type était affectable
+        if(a->type == T_NONEXISTENT) {
+            err_add(E_ERROR, FORBIDDEN_TYPE, "Cannot assign value to nonexistent variable (%s)", var_name(a));
             return RC_ERROR;
         } else {
             err_add(E_ERROR, FORBIDDEN_TYPE, "Cannot assign value to temporary variable");
@@ -366,21 +411,20 @@ return_code var_op_assign(Variable *a, Variable *b, Variable **r) {
 
 }
 
+// vérifié
 // Effectuer une opération mathématique
-return_code var_op(Variable *a, Variable *b, Variable **r, operation_type type) {
+return_code var_op(Variable* a, Variable* b, Variable* eval_value, operation_type type) {
 
-    // Hub de traitement des variable. Que ce soit opération, accès, affectation, toute
-    // opération de ce type passe par là, d'où la présence de et binaire pour éviter de
-    // perdre du temps et limiter les traitement
+    // Hub de traitement des opérations maths, logique, et d'assignation
+    // Tous ces traitements écrivent leurs résultats directement dans la variable
+    // Pointée par eval_value
 
     if(OP_MATH & type) // Opération mathématique
-        return var_op_math(a, b, *r, type);
+        return var_op_math(a, b, eval_value, type);
     else if(OP_MATH_UNARY & type) // Opération mathématique unaire
-        return var_op_math_unary(a, *r, type);
+        return var_op_math_unary(a, eval_value, type);
     else if(OP_LOG & type) // Opération logique
-        return var_op_log(a, b, *r, type);
-    else if(OP_ASSIGN == type) // Assignation
-        return var_op_assign(a, b, r);
+        return var_op_log(a, b, eval_value, type);
     else { // Erreur opération inconnue !
         err_add(E_CRITICAL, UNKOWN_TYPE, "Unknown type of operation (%x) between two variables", type);
         return RC_ERROR;

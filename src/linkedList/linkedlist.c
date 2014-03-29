@@ -7,7 +7,7 @@ Linked_list* linked_list_last(Linked_list* ll) {
     return ll;
 }
 
-void linked_list_append(Linked_list** ll, void* v) {
+void linked_list_append(Linked_list** ll, ptr_type type, void* v) {
     Linked_list *new_ll = (Linked_list*) xmalloc(sizeof(Linked_list));
     new_ll->value = v;
 
@@ -16,13 +16,15 @@ void linked_list_append(Linked_list** ll, void* v) {
     else
         *ll = new_ll;
 
+    new_ll->type = type;
     new_ll->next = NULL;
 }
 
-void linked_list_push(Linked_list **ll, void* v) {
+void linked_list_push(Linked_list **ll, ptr_type type, void* v) {
     Linked_list *new_ll = (Linked_list*) xmalloc(sizeof(Linked_list));
 
     new_ll->value = v;
+    new_ll->type = type;
     new_ll->next = *ll;
 
     *ll = new_ll;

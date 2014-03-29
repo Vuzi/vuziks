@@ -10,8 +10,8 @@ int nb_alloc = 0;
 size_t size_alloc = 0;
 
 void print_memory_info(void) {
-    printf("[i] %d memory block(s) not free'd \n", nb_alloc);
-    printf("[i] %d octets malloc'd \n", size_alloc/8);
+    printf("[i] %u memory block(s) not free'd \n", nb_alloc);
+    printf("[i] %lu octets malloc'd \n", (long unsigned int)size_alloc/8);
 }
 
 void* xmalloc(size_t s) {

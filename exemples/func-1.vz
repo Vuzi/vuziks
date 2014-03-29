@@ -12,5 +12,6 @@ new var foo = function() {
 };
 
 new var boo = foo();
+
 dump boo(); # Doit valoir 42
 return 0;

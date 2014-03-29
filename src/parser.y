@@ -43,6 +43,8 @@
 %}
 
 %union {
+  Unit_conditional *condition;
+  Unit_loop *loop;
   Unit* function;
   Linked_list* list;
   Operation* op;
@@ -58,7 +60,7 @@
 %token P_LEFT P_RIGHT BRACE_LEFT BRACE_RIGHT
 %token COMMA
 %token VAR ATTR NEW DELETE
-%token IDENTIFIER FUNCTION
+%token IDENTIFIER FUNCTION IF ELSE FOR WHILE LOOP
 %token DUMP
 %token EXPR_END
 
@@ -84,12 +86,14 @@
 %left  IDENTIFIER                              // Accès variable, priorité max
 
 // Type utilisé dans l'union suivant le type de terminal rencontré
-%type <function> Function
-%type <list>     Statements Unit Param_list Param_call_list
-%type <op>       RETURN BREAK EQUAL PLUS MINUS STAR SLASH DIV MODULO MORE LESS MORE_E LESS_E D_EQUAL T_EQUAL POW NEG POS POINT VAR ATTR NEW P_LEFT P_RIGHT ADDR ADDR_ACCESS Expression Statement
-%type <str>      IDENTIFIER
-%type <value>    NUMBER
-%type <bool>     BOOL
+%type <condition> Condition
+%type <loop>      Loop
+%type <function>  Function
+%type <list>      Statements Unit Param_list Param_call_list
+%type <op>        Expression Statement
+%type <str>       IDENTIFIER
+%type <value>     NUMBER
+%type <bool>      BOOL
 
 // Par où on commence
 %start Input
@@ -100,7 +104,7 @@ Input:
 	| Input Statements {
 			Unit u;
 			u.args = NULL;
-			u.operations = $2;
+			u.statements = $2;
 
 			p.end_parsing = clock();
 
@@ -113,18 +117,73 @@ Input:
 			if(p.show_timer)
 				printf("[i] Parsed in %.4fs\n", ((p.end_parsing-p.start_parsing)/(double)CLOCKS_PER_SEC));
 
-			eval_main(&u);
+			unit_main(&u);
 	  }
 	;
+
+// Boucle (for/while)
+Loop:
+      FOR P_LEFT Expression EXPR_END Expression EXPR_END Expression P_RIGHT Unit {
+
+      }
+    | WHILE P_LEFT Expression P_RIGHT Unit {
+
+      }
+    | LOOP Unit {
+
+      }
+
+// Condition (if/else if/else)
+Condition:
+	  IF P_LEFT Expression P_RIGHT Unit {
+	  	$$ = unit_cond_new($3, NULL, $5);
+	  }
+	| IF P_LEFT Expression P_RIGHT Expression {
+		Linked_list* ll = NULL;
+	  	linked_list_append(&ll, LLT_OPERATION, (void*)$5);
+	  	$$ = unit_cond_new($3, NULL, ll);
+	  }
+	| Condition ELSE IF P_LEFT Expression P_RIGHT Unit {
+		Unit_conditional *uc = $1;
+		while(uc->next)
+			uc = uc->next;
+		uc->next = unit_cond_new($5, uc, $7);
+		$$ = $1;
+	  }
+	| Condition ELSE IF P_LEFT Expression P_RIGHT Expression {
+		Linked_list* ll = NULL;
+	  	linked_list_append(&ll, LLT_OPERATION, (void*)$7);
+
+		Unit_conditional *uc = $1;
+		while(uc->next)
+			uc = uc->next;
+		uc->next = unit_cond_new($5, uc, ll);
+		$$ = $1;
+	  }
+	| Condition ELSE Unit {
+		Unit_conditional *uc = $1;
+		while(uc->next)
+			uc = uc->next;
+		uc->next = unit_cond_new(NULL, uc, $3);
+		$$ = $1;
+	  }
+	| Condition ELSE Expression {
+		Linked_list* ll = NULL;
+	  	linked_list_append(&ll, LLT_OPERATION, (void*)$3);
+
+		Unit_conditional *uc = $1;
+		while(uc->next)
+			uc = uc->next;
+		uc->next = unit_cond_new(NULL, uc, ll);
+		$$ = $1;
+	  }
 
 // Déclaration de fonction
 Function:
 	  FUNCTION P_LEFT P_RIGHT Unit {
 	  	$$ = unit_new($4, NULL);
 	  }
-	|  
-	  FUNCTION P_LEFT Param_list P_RIGHT Unit {
-	  	// A faire les paramètres
+	| FUNCTION P_LEFT Param_list P_RIGHT Unit {
 	  	$$ = unit_new($5, $3);
 	  }
 	;
@@ -132,22 +191,12 @@ Function:
 // Paramètres de déclaration
 Param_list:
 	  IDENTIFIER {
-		Variable *v = var_new(NULL, 0, T_NULL);
-	  	v->name = $1;
-	  	v->name_h = str_hash($1);
-	  	v->deletable = 1;
-
 		$$ = NULL;
-		linked_list_append(&$$, (void*)v);
+		linked_list_append(&$$, LLT_VARIABLE, (void*)var_new($1, str_hash($1), T_NULL));
 	  }
 	| Param_list COMMA IDENTIFIER {
-		Variable *v = var_new(NULL, 0, T_NULL);
-	  	v->name = $3;
-	  	v->name_h = str_hash($3);
-	  	v->deletable = 1;
-
-		linked_list_append(&$1, (void*)v);
 		$$ = $1;
+		linked_list_append(&$1, LLT_VARIABLE, (void*)var_new($3, str_hash($3), T_NULL));
 	  }
 	;
 
@@ -155,11 +204,11 @@ Param_list:
 Param_call_list:
 	  Expression {
 		$$ = NULL;
-		linked_list_append(&$$, (void*)$1);
+		linked_list_append(&$$, LLT_OPERATION, (void*)$1);
 	  }
 	| Param_call_list COMMA Expression {
-		linked_list_append(&$1, (void*)$3);
 		$$ = $1;
+		linked_list_append(&$1, LLT_OPERATION, (void*)$3);
 	  }
 	;
 
@@ -171,14 +220,39 @@ Unit:
 	;
 
 // Un ensemble de lignes de code (Par exemple le contenu d'une fonction ou une boucle)
+// Peut contenir de statement/boucle/condition
 Statements:
 	  Statements Statement {
-	  	$$ = $1; // Il faut ajouter le statement à la liste des statement
-	  	if($2) linked_list_append(&$1, (void*)$2);
+	  	$$ = $1; // Il faut ajouter le statement à la liste
+	  	if($2) linked_list_append(&$1, LLT_OPERATION, (void*)$2);
+	  }
+	| Statements Unit {
+	  	$$ = $1; // Il faut ajouter l'unit à la liste
+	  	if($2) linked_list_append(&$1, LLT_UNIT, (void*)$2);
+	  }
+	| Statements Condition {
+	  	$$ = $1; // Il faut ajouter la condition à la liste
+	  	if($2) linked_list_append(&$1, LLT_CONDITION, (void*)$2);
+	  }
+	| Statements Loop {
+	  	$$ = $1; // Il faut ajouter la boucle à la liste
+	  	if($2) linked_list_append(&$1, LLT_LOOP, (void*)$2);
 	  }
 	| Statement {
 		$$ = NULL; // Pas encore de liste, il faut la créer
-	  	if($1) linked_list_append(&$$, (void*)$1); // On met notre statement dedans
+	  	if($1) linked_list_append(&$$, LLT_OPERATION, (void*)$1); // On met notre statement dedans
+	  }
+	| Unit {
+		$$ = NULL; // Pas encore de liste, il faut la créer
+	  	if($1) linked_list_append(&$$, LLT_UNIT, (void*)$1); // On met notre unit dedans
+	  }
+	| Condition {
+		$$ = NULL; // Pas encore de liste, il faut la créer
+	  	if($1) linked_list_append(&$$, LLT_CONDITION, (void*)$1); // On met notre condition dedans
+	  }
+	| Loop {
+		$$ = NULL; // Pas encore de liste, il faut la créer
+	  	if($1) linked_list_append(&$$, LLT_LOOP, (void*)$1); // On met notre boucle dedans
 	  }
 	;
 
@@ -196,7 +270,6 @@ Statement:
 	  	if(p.interactive_mod) {
 			// Initialisation valeur retour
 			var_init_loc(&r_base, NULL, 0, T_NULL);
-			r_base.deletable = 0;
 			r = &r_base;
 
 			if(p.show_operation) {
@@ -207,7 +280,7 @@ Statement:
 
 			// Evaluation
 			puts("\n[<] Evaluating the operations ...");
-			switch(op_eval($1, &ec_obj, &ec_tmp, &r)) {
+			switch(op_eval(&ec_obj, &ec_tmp, $1, &r)) {
 				case RC_WARNING :
 					err_display_last();
 				case RC_BREAK :
@@ -221,8 +294,8 @@ Statement:
 					printf("[x] Error, interpreter stopped with code %x \n", e.type);
 					return e.type;
 				case RC_RETURN :
-					if(r->type == T_NUM)
-						goodbye = (int)r->value.v_num;
+					if(r_base.type == T_NUM)
+						goodbye = (int)r_base.value.v_num;
 					printf("[i] Interpreter stopped (%x) \n", goodbye);
 					exit(goodbye);
 				default:
@@ -233,16 +306,19 @@ Statement:
 
 			if(p.auto_dump) {
 				puts("\n[>] Statement value :");
-				var_dump(r);
+				var_dump(&r_base);
 			}
 
 			// Suppression valeur temporaire
-			var_delete(&r_base, 1);
+			if(r_base.type != T_NULL)
+				var_empty(&r_base);
+			else
+				r = &r_base;
+
 			beginTokenNewLine();
 			puts("");
 		} else {
 			$$ = $1;
-			$$->info.line = yylineno;
 		}
 	}
 	;
@@ -262,28 +338,28 @@ Expression:
 	  }
 	| Expression POINT IDENTIFIER {                                // Accès a une variable membre (OP_ATTR_ACCESS)
 	  	$$ = op_new(OP_ATTR_ACCESS, $1, NULL, NULL);
-	  	$$->info.val = $3;
-	  	$$->info.val_h = str_hash($3);
+	  	$$->identifier.s = $3;
+	  	$$->identifier.s_h = str_hash($3);
 	  }
 	| NEW VAR IDENTIFIER {                                         // Création d'une variable temporaire (OP_DEC_VAR)
 		$$ = op_new(OP_DEC_VAR, NULL, NULL, NULL);
-	  	$$->info.val = $3;
-	  	$$->info.val_h = str_hash($3);
+	  	$$->identifier.s = $3;
+	  	$$->identifier.s_h = str_hash($3);
 	  }
 	| NEW ATTR IDENTIFIER {                                        // Création d'une variable membre (OP_DEC_ATTR)
 		$$ = op_new(OP_DEC_ATTR, NULL, NULL, NULL);
-	  	$$->info.val = $3;
-	  	$$->info.val_h = str_hash($3);
+	  	$$->identifier.s = $3;
+	  	$$->identifier.s_h = str_hash($3);
 	  }
 	| DELETE VAR IDENTIFIER {                                      // Création d'une variable temporaire (OP_DEC_VAR)
 		$$ = op_new(OP_DELETE_VAR, NULL, NULL, NULL);
-	  	$$->info.val = $3;
-	  	$$->info.val_h = str_hash($3);
+	  	$$->identifier.s = $3;
+	  	$$->identifier.s_h = str_hash($3);
 	  }
 	| DELETE ATTR IDENTIFIER {                                     // Création d'une variable membre (OP_DEC_ATTR)
 		$$ = op_new(OP_DELETE_ATTR, NULL, NULL, NULL);
-	  	$$->info.val = $3;
-	  	$$->info.val_h = str_hash($3);
+	  	$$->identifier.s = $3;
+	  	$$->identifier.s_h = str_hash($3);
 	  }
 	| P_LEFT Expression P_RIGHT {                                  // Parenthèses, uniquement utile aux prioritées
 		$$ = $2;
@@ -306,18 +382,18 @@ Expression:
 	  }
 	| IDENTIFIER {                                                 // Accès à une variable (OP_ACCES)
 	  	$$ = op_new(OP_ACCES, NULL, NULL, NULL);
-	  	$$->info.val = $1;
-	  	$$->info.val_h = str_hash($1);
+	  	$$->identifier.s = $1;
+	  	$$->identifier.s_h = str_hash($1);
 	  }
 	| VAR IDENTIFIER {                                             // Accès à une variable (OP_ACCES)
 	  	$$ = op_new(OP_ACCES_VAR, NULL, NULL, NULL);
-	  	$$->info.val = $2;
-	  	$$->info.val_h = str_hash($2);
+	  	$$->identifier.s = $2;
+	  	$$->identifier.s_h = str_hash($2);
 	  }
 	| ATTR IDENTIFIER {                                            // Accès à une variable (OP_ACCES)
 	  	$$ = op_new(OP_ACCES_ATTR, NULL, NULL, NULL);
-	  	$$->info.val = $2;
-	  	$$->info.val_h = str_hash($2);
+	  	$$->identifier.s = $2;
+	  	$$->identifier.s_h = str_hash($2);
 	  }
 	| Expression POW Expression {                                  // Puissance (OP_MATH_POW)
 	  	$$ = op_new(OP_MATH_POW, $1, $3, NULL);

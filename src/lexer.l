@@ -126,6 +126,7 @@ var       {char}({char}|{chiffre})*
 (?i:else)         { beginToken(yytext); return(ELSE); }
 (?i:for)          { beginToken(yytext); return(FOR); }
 (?i:while)        { beginToken(yytext); return(WHILE); }
+(?i:loop)         { beginToken(yytext); return(LOOP); }
 
 (?i:function)	  { beginToken(yytext); return(FUNCTION); }
  

@@ -14,13 +14,13 @@
 
 // Unité - fonction
 typedef struct s_Unit {
-    Linked_list *operations;   // Liste des opérations de l'unité
+    Linked_list *statements;   // Liste des opérations de l'unité
     Linked_list *args;         // Arguments attendus
 } Unit;
 
 // Unité - condition
 typedef struct s_Unit_conditional {
-    Linked_list *operations;
+    Linked_list *statements;
     struct s_Operation *condition;     // Condition
 	struct s_Unit_conditional *next;   // Prochaine condition (cas des else)
 } Unit_conditional;
@@ -37,8 +37,7 @@ typedef struct s_Unit_loop {
 // Contexte d'execution
 typedef struct s_Exec_context {
     Linked_list* variables;                 // Liste des variables du contexte
-    struct s_Exec_context* caller_context;  // Contexte de la variable l'ayant appelé
-    struct s_Variable* caller;              // Variable l'ayant appelé
+    struct s_Exec_context* container;       // Contexte où contenu
 } Exec_context;
 
 #include "variableOp.h"
@@ -46,23 +45,28 @@ typedef struct s_Exec_context {
 
 
 typedef struct s_Variale Variable;
+typedef struct s_Operation Operation;
 
 // Prototypes
-void eval_main(Unit* start);
+void unit_main(Unit* start);
 
-return_code ec_init_loc(Exec_context *ec);
-return_code ec_init(Exec_context **ec);
-return_code ec_add_var(Exec_context* ec, char* name, hash_t name_h, Variable **r);
-return_code ec_var_access(Exec_context* ec_obj, Exec_context* ec_tmp, operation_type type, char* name, hash_t name_h, Variable **r);
-return_code ec_pop_var(Exec_context *ec, char* name, hash_t name_h, Variable **r);
-return_code ec_empty(Exec_context *ec);
+return_code unit_function(Exec_context *ec_obj, Exec_context *ec_var_caller, Linked_list* args, Unit* function, Variable* eval_value);
+return_code unit_constructor(Exec_context *ec_obj_caller, Exec_context *ec_var_caller, Linked_list* args, Unit* function, Variable* eval_value);
 
-Unit* unit_new(Linked_list *operations, Linked_list *args);
-return_code unit_empty(Unit *u);
+Unit* unit_new(Linked_list *statements, Linked_list *args);
+void unit_empty(Unit *u);
 
-return_code unit_function(Variable **r, Exec_context *ec_obj, Exec_context *caller_tmp, Linked_list *args, Unit *u); // Retourne la valeur de l'évaluation
-return_code unit_constructor(Exec_context *ec_obj, Exec_context *caller_obj, Exec_context *caller_tmp, Linked_list *args,  Unit *u); // Retourne le contexte du nouvel objet
-return_code unit_cond_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_tmp_source, Unit_conditional *uc); // Evalue la condition
-return_code unit_loop_eval(Variable **r, Exec_context *ec_obj, Exec_context *ec_tmp_source, Unit_loop *ul); // Evalue la boucle
+void ec_init_loc(Exec_context *ec);
+void ec_empty(Exec_context *ec);
+
+void ec_push_var(Exec_context* ec, Variable* v);
+return_code ec_add_var(Exec_context* ec, Operation_identifier* id, Variable** eval_value);
+return_code ec_var_access(Exec_context* ec_obj, Exec_context* ec_tmp, operation_type type, Operation_identifier* id, Variable** eval_value);
+return_code ec_pop_var(Exec_context* ec, Operation_identifier* id, Variable* eval_value);
+
+Unit_conditional* unit_cond_new(Operation* cond, Unit_conditional* before, Linked_list* statements);
+void unit_cond_delete(Unit_conditional* uc);
+
+return_code unit_cond_eval(Exec_context *ec_obj, Exec_context *ec_var, Unit_conditional *uc, Variable* eval_value);
 
 #endif // _H_UNIT

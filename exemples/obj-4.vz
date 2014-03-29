@@ -1,0 +1,22 @@
+# Test objet n°4
+# -----------------------------------------
+# Création d'un objet, puis accès
+# à ces variables membres avec une fonction
+# retournant une variable membre depuis une
+# autre fonction
+# -----------------------------------------
+
+new var foo = function() {
+	new attr a = 42;
+	new attr boo = function() {
+		new var f = function() {
+			return a;
+		};
+		return f();
+	};
+};
+
+new var o = new foo();
+dump o.boo(); # Retourne o.a, soit 42
+
+return 0;
