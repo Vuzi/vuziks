@@ -24,6 +24,7 @@ const char* operation_type_debug(operation_type o) ;
 
 void unit_dump(Unit *u);
 void unit_cond_dump(Unit_conditional* uc);
+void unit_loop_dump(Unit_loop *ul);
 void op_dump(struct s_Operation *o);
 void var_dump(Variable *v);
 void var_obj_dump(Object *o);

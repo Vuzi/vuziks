@@ -37,6 +37,7 @@ typedef struct s_Unit_loop {
 typedef struct s_Exec_context {
     Linked_list* variables;                 // Liste des variables du contexte
     struct s_Exec_context* container;       // Contexte où contenu
+    struct s_Object* object;
 } Exec_context;
 
 #include "variableOp.h"

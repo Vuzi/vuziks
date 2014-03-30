@@ -24,6 +24,8 @@ typedef enum e_language_type {
 typedef struct s_Object {
     Exec_context ec;        // Liste des variables qu'il contient
     unsigned int n_links;   // Nombre de liens sur cet objet
+    hash_t lib_name;        // Hash du nom de la librairie
+    void* data;             // Données si utilisé par une bibliothèque extérieure
 } Object;
 
 // Représente une valeur possible (null n'ayant pas de représentation)

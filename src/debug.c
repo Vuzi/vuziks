@@ -152,7 +152,7 @@ void unit_dump(Unit *u) {
                 unit_cond_dump((Unit_conditional*)(ll->value));
                 break;
             case LLT_LOOP :
-                // a faire
+                unit_loop_dump((Unit_loop*)(ll->value));
                 break;
             default :
                 debug_pr_lvl(), puts(">(error type statement)");
@@ -258,6 +258,10 @@ void var_dump(Variable *v) {
     } else
         debug_pr_lvl(), puts(" <null> : \n\t(null)");
 }
+/*
+void var_obj_type_dump(Object *o) {
+    var_search(o->ec->variables, name)
+}*/
 
 // Affichage debug objet
 void var_obj_dump(Object *o) {
@@ -322,4 +326,62 @@ void unit_cond_dump(Unit_conditional* uc) {
     if(uc->next)
         unit_cond_dump(uc->next);
 
+}
+
+void unit_loop_dump(Unit_loop *ul) {
+
+    Linked_list* ll = ul->statements;
+
+    debug_pr_lvl(), puts(">loop unit");
+    debug_pr_lvl(), puts("  start statement :");
+        if(ul->start_action) {
+            debug_lvl++;
+            op_dump(ul->start_action);
+            debug_lvl--;
+        } else
+            debug_pr_lvl(), puts("  (none)");
+
+    debug_pr_lvl(), puts("  start condition :");
+        if(ul->start_condition) {
+            debug_lvl++;
+            op_dump(ul->start_condition);
+            debug_lvl--;
+        } else
+            debug_pr_lvl(), puts("  (none)");
+
+    debug_pr_lvl(), puts("  end condition :");
+        if(ul->end_condition) {
+            debug_lvl++;
+            op_dump(ul->end_condition);
+            debug_lvl--;
+        } else
+            debug_pr_lvl(), puts("  (none)");
+
+    debug_pr_lvl(), puts("  statements : ");
+    debug_lvl++;
+
+    while(ll) {
+        switch(ll->type) {
+            case LLT_UNIT :
+                unit_dump((Unit*)(ll->value));
+                break;
+            case LLT_OPERATION :
+                op_dump((Operation*)(ll->value));
+                break;
+            case LLT_VARIABLE :
+                var_dump((Variable*)(ll->value));
+                break;
+            case LLT_CONDITION :
+                unit_cond_dump((Unit_conditional*)(ll->value));
+                break;
+            case LLT_LOOP :
+                // a faire
+                break;
+            default :
+                debug_pr_lvl(), puts(">(error type statement)");
+        }
+        ll = ll->next;
+    }
+
+    debug_lvl--;
 }

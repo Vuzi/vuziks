@@ -11,7 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="func-2.vz --show-op" />
+				<Option parameters="pgcd.vz --show-op" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>

@@ -1,0 +1,17 @@
+# Suite de Fibonacci
+# -----------------------------------------
+# Version naïve de la suite de Fibonacci
+# -----------------------------------------
+
+new var fibo = function(n) {
+	if( n <= 1)
+		return n;
+	else if (n > 1)
+		return fibo(n - 1) + fibo(n - 2);
+};
+
+for(new var i = 0; i < 5; i = i + 1) {
+	dump fibo(i);
+}
+
+return 0;

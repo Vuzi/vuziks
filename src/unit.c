@@ -234,7 +234,8 @@ return_code unit_constructor(Exec_context *ec_obj_caller, Exec_context *ec_var_c
         case RC_OK :
             if(eval_value->type != T_NULL) var_empty(eval_value);
             // Création de l'objet
-            o->ec.container = NULL;
+            o->ec.container = ec_obj_caller;
+            o->ec.object = o;
             eval_value->type = T_OBJECT;
             eval_value->value.v_obj = o;
             eval_value->container = ec_obj_caller;
@@ -316,6 +317,7 @@ void unit_empty(Unit *u) {
 void ec_init_loc(Exec_context *ec) {
     ec->container = NULL;
     ec->variables = NULL;
+    ec->object = NULL;
 }
 
 // Vérifié
@@ -472,7 +474,7 @@ return_code unit_cond_eval(Exec_context *ec_obj, Exec_context *ec_var, Unit_cond
                     goto cond_true;
             }
 
-            if(eval_value->type != T_NULL) var_empty(eval_value); // Libération
+            if(save->type != T_NULL) var_empty(save); // Libération
             else eval_value = save;
 
         } else // else
@@ -505,7 +507,7 @@ return_code unit_cond_eval(Exec_context *ec_obj, Exec_context *ec_var, Unit_cond
         }
 
     cond_end:
-        if(eval_value->type != T_NULL) var_empty(eval_value); // Libération
+        if(save->type != T_NULL) var_empty(save); // Libération
         else eval_value = save;
 
         ec_empty(&ec_local);
@@ -553,6 +555,8 @@ return_code unit_loop_eval(Exec_context *ec_obj, Exec_context *ec_var, Unit_loop
                 err_display_last();
                 rc = RC_OK;
             case RC_OK :
+                if(save->type != T_NULL) var_empty(save); // Libération
+                else eval_value = save;
                 break;
             case RC_BREAK :
                 rc = RC_OK;
@@ -574,8 +578,6 @@ return_code unit_loop_eval(Exec_context *ec_obj, Exec_context *ec_var, Unit_loop
         // Test condition initiale - 1
         if((state == 0 && ul->start_condition) ||
            (state == 1 && ul->end_condition )) {
-
-               printf("hello\n");
 
             switch((rc = op_eval(ec_obj, &ec_local, ul->start_condition, &eval_value))) {
                 case RC_WARNING :
@@ -613,7 +615,7 @@ return_code unit_loop_eval(Exec_context *ec_obj, Exec_context *ec_var, Unit_loop
                     goto loop_end;
             }
 
-            if(eval_value->type != T_NULL) var_empty(eval_value); // Libération
+            if(save->type != T_NULL) var_empty(save); // Libération
             else eval_value = save;
         }
 
@@ -642,7 +644,7 @@ return_code unit_loop_eval(Exec_context *ec_obj, Exec_context *ec_var, Unit_loop
                 goto loop_end;
         }
 
-        if(eval_value->type != T_NULL) var_empty(eval_value); // Libération
+        if(save->type != T_NULL) var_empty(save); // Libération
         else eval_value = save;
 
         state = 1;
@@ -650,7 +652,7 @@ return_code unit_loop_eval(Exec_context *ec_obj, Exec_context *ec_var, Unit_loop
 
     loop_end:
 
-        if(eval_value->type != T_NULL) var_empty(eval_value); // Libération
+        if(save->type != T_NULL) var_empty(save); // Libération
         else eval_value = save;
 
         ec_empty(&ec_local);

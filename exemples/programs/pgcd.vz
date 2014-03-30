@@ -1,0 +1,18 @@
+# PGCD
+# -----------------------------------------
+# Calcul le pgcd entre a et b
+# -----------------------------------------
+
+new var pgcd = function(a, b) {
+	if( a is number and b is number ) {
+		if( a % b == 0 ) {
+			return b;
+		} else
+			return pgcd(b, a%b);
+	} else
+		return 0;
+};
+
+dump pgcd(11, 5);
+
+return 0;

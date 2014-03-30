@@ -1,0 +1,11 @@
+ 
+ # si appel fonction type built-in
+  -> appel du pointeur donné au type avec les informations
+    -> si attr et l'objet à des données, avec les données (en void*)
+      -> ici, executer son code (en C qui effectue ce qu'on veut), préparer la valeur de retour, et modifier / ajouter des attributs 
+        -> tout va bien et tout est terminé
+
+ # si appel fonction type built-in
+  -> appel du pointeur donné au type avec les informations
+   -> ajoute ses données (fonctions, attributs, etc..) à l'objet donné
+     -> tout va bien

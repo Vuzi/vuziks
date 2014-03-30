@@ -8,7 +8,7 @@ double modulo(double a, double b) {
     double sign = a / abs(a);
     a = abs(a); b = abs(b);
 
-    while(a > b)
+    while(a >= b)
         a -= b;
 
     return a*sign;

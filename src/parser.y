@@ -146,7 +146,7 @@ Condition:
 	  IF P_LEFT Expression P_RIGHT Unit {
 	  	$$ = unit_cond_new($3, NULL, $5);
 	  }
-	| IF P_LEFT Expression P_RIGHT Expression {
+	| IF P_LEFT Expression P_RIGHT Statement {
 		Linked_list* ll = NULL;
 	  	linked_list_append(&ll, LLT_OPERATION, (void*)$5);
 	  	$$ = unit_cond_new($3, NULL, ll);
@@ -158,7 +158,7 @@ Condition:
 		uc->next = unit_cond_new($5, uc, $7);
 		$$ = $1;
 	  }
-	| Condition ELSE IF P_LEFT Expression P_RIGHT Expression {
+	| Condition ELSE IF P_LEFT Expression P_RIGHT Statement {
 		Linked_list* ll = NULL;
 	  	linked_list_append(&ll, LLT_OPERATION, (void*)$7);
 
@@ -175,7 +175,7 @@ Condition:
 		uc->next = unit_cond_new(NULL, uc, $3);
 		$$ = $1;
 	  }
-	| Condition ELSE Expression {
+	| Condition ELSE Statement {
 		Linked_list* ll = NULL;
 	  	linked_list_append(&ll, LLT_OPERATION, (void*)$3);
 
