@@ -1,13 +1,9 @@
-del prog.lex.c
-del prog.exe
-del prog.lex.o
-del prog.h
-del prog.y.c
-del prog.y.o
+del parser.h
+del parser.c
+del lexer.c
 
-pause
-win_bison -v -d prog.y
-rename prog.tab.h prog.h
-rename prog.tab.c prog.y.c
-win_flex prog.l
-rename lex.yy.c prog.lex.c
+win_bison -v -t -d -v --report=lookahead -d parser.y
+rename parser.tab.h parser.h
+rename parser.tab.c parser.c
+win_flex lexer.l
+rename lex.yy.c lexer.c

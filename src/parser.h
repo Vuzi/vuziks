@@ -48,50 +48,54 @@ extern int yydebug;
    enum yytokentype {
      NUMBER = 258,
      BOOL = 259,
-     PLUS = 260,
-     MINUS = 261,
-     STAR = 262,
-     SLASH = 263,
-     DIV = 264,
-     POW = 265,
-     EQUAL = 266,
-     POINT = 267,
-     ADDR = 268,
-     MODULO = 269,
-     MORE = 270,
-     LESS = 271,
-     MORE_E = 272,
-     LESS_E = 273,
-     AND = 274,
-     OR = 275,
-     NOT = 276,
-     EXIST = 277,
-     D_EQUAL = 278,
-     T_EQUAL = 279,
-     DIF = 280,
-     P_LEFT = 281,
-     P_RIGHT = 282,
-     BRACE_LEFT = 283,
-     BRACE_RIGHT = 284,
-     COMMA = 285,
-     VAR = 286,
-     ATTR = 287,
-     NEW = 288,
-     DELETE = 289,
-     IDENTIFIER = 290,
-     FUNCTION = 291,
-     IF = 292,
-     ELSE = 293,
-     FOR = 294,
-     WHILE = 295,
-     LOOP = 296,
-     DUMP = 297,
-     EXPR_END = 298,
-     BREAK = 299,
-     RETURN = 300,
-     POS = 301,
-     NEG = 302,
-     ADDR_ACCESS = 303
+     TYPE = 260,
+     PLUS = 261,
+     MINUS = 262,
+     STAR = 263,
+     SLASH = 264,
+     DIV = 265,
+     POW = 266,
+     EQUAL = 267,
+     POINT = 268,
+     ADDR = 269,
+     MODULO = 270,
+     MORE = 271,
+     LESS = 272,
+     MORE_E = 273,
+     LESS_E = 274,
+     AND = 275,
+     OR = 276,
+     NOT = 277,
+     EXIST = 278,
+     D_EQUAL = 279,
+     T_EQUAL = 280,
+     DIF = 281,
+     P_LEFT = 282,
+     P_RIGHT = 283,
+     BRACE_LEFT = 284,
+     BRACE_RIGHT = 285,
+     COMMA = 286,
+     VAR = 287,
+     ATTR = 288,
+     NEW = 289,
+     DELETE = 290,
+     TYPEOF = 291,
+     IS = 292,
+     IDENTIFIER = 293,
+     FUNCTION = 294,
+     IF = 295,
+     ELSE = 296,
+     FOR = 297,
+     WHILE = 298,
+     LOOP = 299,
+     DUMP = 300,
+     EXPR_END = 301,
+     NEW_LINE = 302,
+     BREAK = 303,
+     RETURN = 304,
+     POS = 305,
+     NEG = 306,
+     ADDR_ACCESS = 307
    };
 #endif
 
@@ -100,7 +104,7 @@ extern int yydebug;
 typedef union YYSTYPE
 {
 /* Line 2058 of yacc.c  */
-#line 45 "parser.y"
+#line 49 "parser.y"
 
   Unit_conditional *condition;
   Unit_loop *loop;
@@ -108,13 +112,14 @@ typedef union YYSTYPE
   Linked_list* list;
   Operation* op;
   Unit *u;
+  language_type type;
   char *str;
   float value;
   char bool;
 
 
 /* Line 2058 of yacc.c  */
-#line 118 "parser.tab.h"
+#line 123 "parser.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

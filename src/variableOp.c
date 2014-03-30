@@ -17,12 +17,14 @@ static return_code var_op_un_m(Variable *a, Variable *r);
 static return_code var_op_math_unary(Variable *a,Variable *r, operation_type type);
 static return_code var_op_comp(Variable *a, Variable *b, Variable *r, operation_type type);
 static return_code var_op_equal(Variable *a, Variable *b, Variable *r, operation_type type);
-static return_code var_op_type(Variable *a, Variable *b, Variable *r);
+static return_code var_op_comp_type(Variable *a, Variable *b, Variable *r);
 static return_code var_op_or_and(Variable *a, Variable *b, Variable *r, operation_type type);
 static return_code var_op_not(Variable *a, Variable *r);
 static return_code var_op_exist(Variable *a, Variable *r);
 static return_code var_op_log(Variable *a, Variable *b, Variable *r, operation_type type);
-
+static return_code var_op_type(Variable *a, Variable *b, Variable *v, operation_type type);
+static return_code var_op_typeof(Variable *a, Variable *v);
+static return_code var_op_typeis(Variable *a, Variable *b, Variable *v);
 // Opération
 static return_code var_op_add(Variable *a, Variable *b, Variable *r) {
     r->value.v_num = a->value.v_num + b->value.v_num;
@@ -174,6 +176,12 @@ static return_code var_op_equal(Variable *a, Variable *b, Variable *r, operation
 
     if(a->type == b->type) {
         switch(a->type) {
+            case T_NONEXISTENT:
+                r->value.v_bool = 0; // Toujours faux
+                break;
+            case T_TYPE:
+                r->value.v_bool = (a->value.v_type == b->value.v_type ? 1 : 0);
+                break;
             case T_NULL:
                 r->value.v_bool = (a == b ? 1 : 0);
                 break;
@@ -206,7 +214,7 @@ static return_code var_op_equal(Variable *a, Variable *b, Variable *r, operation
     return RC_OK;
 }
 
-static return_code var_op_type(Variable *a, Variable *b, Variable *r) {
+static return_code var_op_comp_type(Variable *a, Variable *b, Variable *r) {
 
     r->type = T_BOOL;
     r->value.v_bool = (a->type == b->type ? 1 : 0);
@@ -276,7 +284,7 @@ static return_code var_op_log(Variable *a, Variable *b, Variable *v, operation_t
         case OP_LOG_DIF :
             return var_op_equal(a, b, v, type);
         case OP_LOG_TYPE :
-            return var_op_type(a, b, v);
+            return var_op_comp_type(a, b, v);
         case OP_LOG_AND :
         case OP_LOG_OR :
             return var_op_or_and(a, b, v, type);
@@ -288,6 +296,43 @@ static return_code var_op_log(Variable *a, Variable *b, Variable *v, operation_t
             err_add(E_CRITICAL, UNKOWN_TYPE, "Unknown type of logical operation : the operation type cannot be resolved as a known type");
             return RC_ERROR;
     }
+}
+
+// Opération logique
+static return_code var_op_type(Variable *a, Variable *b, Variable *v, operation_type type) {
+
+    switch(type) {
+        case OP_TYPE_TYPEOF :
+            return var_op_typeof(a, v);
+        case OP_TYPE_IS :
+            return var_op_typeis(a, b, v);
+        default :
+            err_add(E_CRITICAL, UNKOWN_TYPE, "Unknown type of type operation : the operation type cannot be resolved as a known type");
+            return RC_ERROR;
+    }
+}
+
+static return_code var_op_typeof(Variable *a, Variable *v) {
+
+    v->type = T_TYPE;
+    v->value.v_type = a->type;
+
+    return RC_OK;
+}
+
+static return_code var_op_typeis(Variable *a, Variable *b, Variable *v) {
+
+    v->type = T_BOOL;
+
+    if(b->type != T_TYPE) {
+        v->value.v_bool = 0;
+        err_add(E_WARNING, FORBIDDEN_TYPE, "Using the 'is' operation with another type (%s) than 'type'", language_type_debug(b->type));
+        return RC_WARNING;
+    }
+
+    v->value.v_bool = a->type == b->value.v_type ? 1 : 0;
+    return RC_OK;
+
 }
 
 // Accès à un attribut
@@ -322,6 +367,7 @@ return_code var_op_return(Variable *a, Variable* eval_value) {
         switch(a->type) {
             // Cas par recopie simple
             case T_NULL :
+            case T_TYPE :
             case T_NUM :
             case T_BOOL :
             case T_FUNCTION :
@@ -367,6 +413,7 @@ return_code var_op_assign(Variable* a, Variable* b, Variable** eval_value) {
             switch(b->type) {
                 // Cas par recopie simple
                 case T_NULL :
+                case T_TYPE :
                 case T_NUM :
                 case T_BOOL :
                 case T_FUNCTION :
@@ -425,6 +472,8 @@ return_code var_op(Variable* a, Variable* b, Variable* eval_value, operation_typ
         return var_op_math_unary(a, eval_value, type);
     else if(OP_LOG & type) // Opération logique
         return var_op_log(a, b, eval_value, type);
+    else if(OP_TYPE & type) // Opération sur les types
+        return var_op_type(a, b, eval_value, type);
     else { // Erreur opération inconnue !
         err_add(E_CRITICAL, UNKOWN_TYPE, "Unknown type of operation (%x) between two variables", type);
         return RC_ERROR;

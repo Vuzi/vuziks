@@ -18,7 +18,8 @@
 #define OP_MATH 0x200
 #define OP_MATH_UNARY 0x400
 #define OP_LOG 0x800
-#define OP_MATH_OR_LOG_TYPE 0xE00
+#define OP_TYPE 0x1000
+#define OP_MATH_OR_LOG_TYPE 0x1E00
 #define OP_VAR 0x2000
 #define OP_OUTPUT 0x8000
 
@@ -38,15 +39,18 @@ typedef enum e_operation_type {
 	OP_LOG_GT = 0x801, OP_LOG_GE = 0x802, OP_LOG_LT = 0x803, OP_LOG_LE = 0x804, OP_LOG_EQ = 0x805, OP_LOG_DIF = 0x806,
 	OP_LOG_TYPE = 0x807, OP_LOG_NOT = 0x808, OP_LOG_AND = 0x809, OP_LOG_OR = 0x810, OP_LOG_EXIST = 0x811,
 
+	// Opération sur les types
+	OP_TYPE_IS = 0x1001, OP_TYPE_TYPEOF = 0x1002,
+
     // Assignation
-    OP_ASSIGN = 0x1004,
+    OP_ASSIGN = 0x2001,
 
     // Variable naturelle et déclaration
-    OP_VALUE = 0x2000, OP_DEC_VAR = 0x2001, OP_DEC_ATTR = 0x2002,
+    OP_VALUE = 0x2002, OP_DEC_VAR = 0x2003, OP_DEC_ATTR = 0x2004,
 
     // Déclaration de variable/de fonction et suppression de variable
-    OP_ACCES = 0x2020, OP_ACCES_VAR = 0x2021, OP_ACCES_ATTR = 0x2022, OP_ATTR_ACCESS = 0x2003, OP_DELETE_VAR = 0x2004,
-    OP_DELETE_ATTR = 0x2005, OP_UNIT = 0x2006,
+    OP_ACCES = 0x2020, OP_ACCES_VAR = 0x2021, OP_ACCES_ATTR = 0x2022, OP_ATTR_ACCESS = 0x2005, OP_DELETE_VAR = 0x2006,
+    OP_DELETE_ATTR = 0x2007, OP_UNIT = 0x2008,
 
     // Opérateur spéciaux
 	OP_COMMA = 0x4000, OP_RETURN = 0x4001, OP_BREAK = 0x4002,

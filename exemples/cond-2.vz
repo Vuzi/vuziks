@@ -1,0 +1,15 @@
+# Test condition n°2
+# -----------------------------------------
+# Portée des variables
+# -----------------------------------------
+
+new var a = 20;
+
+if( true ) {
+	new var a = -1;
+	dump a; # Affiche -1
+}
+
+dump a;   # Affiche 20
+
+return 0;

@@ -1,0 +1,16 @@
+# Test boucle n°1
+# -----------------------------------------
+# Afficher 4 fois une valeur
+# -----------------------------------------
+
+new var a = 4;
+
+loop {
+	dump a;
+	a = a - 1;
+
+	if( a <= 0 )
+		break;
+}
+
+return 0;

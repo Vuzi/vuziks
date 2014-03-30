@@ -15,6 +15,8 @@ void debug_pr_lvl(void) {
 // Type de variable en chaîne
 const char* language_type_debug(language_type l) {
     switch(l) {
+        case T_TYPE:
+            return "type";
         case T_NUM:
             return "digital";
         case T_NULL:
@@ -87,6 +89,10 @@ const char* operation_type_debug(operation_type o) {
             return "OP_LOG_AND";
         case OP_LOG_OR:
             return "OP_LOG_OR";
+        case OP_TYPE_IS:
+            return "OP_TYPE_IS";
+        case OP_TYPE_TYPEOF:
+            return "OP_TYPE_TYPEOF";
         case OP_ASSIGN:
             return "OP_ASSIGN";
         case OP_VALUE:
@@ -208,6 +214,9 @@ void var_dump(Variable *v) {
         debug_pr_lvl(),  fputs("  value : ", stdout);
 
         switch(v->type) {
+            case T_TYPE:
+                printf("%s\n", language_type_debug(v->value.v_type));
+                break;
             case T_NUM:
                 printf("%lf\n", v->value.v_num);
                 break;

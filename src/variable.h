@@ -16,7 +16,8 @@
 
 // Type de donnée possibles
 typedef enum e_language_type {
-	T_NONEXISTENT = -1, T_NULL = 0, T_BOOL = 1, T_NUM = 2, T_ARRAY = 3, T_LINKEDLIST = 4, T_FUNCTION = 5, T_OBJECT = 6, T_ARGS = 7
+	T_NONEXISTENT = -1, T_NULL = 0, T_TYPE = 1, T_BOOL = 2, T_NUM = 3,
+	T_ARRAY = 4, T_LINKEDLIST = 5, T_FUNCTION = 6, T_OBJECT = 7, T_ARGS = 8
 } language_type;
 
 // Représente un objet instancié en mémoire
@@ -28,6 +29,7 @@ typedef struct s_Object {
 // Représente une valeur possible (null n'ayant pas de représentation)
 typedef union u_Language_value {
     // Variables naturelles
+    language_type v_type;
 	char v_bool;
 	double v_num;
 	// Références

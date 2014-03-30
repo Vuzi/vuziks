@@ -22,6 +22,9 @@
 	extern FILE* yyin;
 	extern int yylineno;
 
+	extern unsigned int inside;
+	extern char show_prompt;
+
 	// Prototypes
 	int yylex(void);
 	int yyerror(const char *s);
@@ -29,6 +32,7 @@
 	// Affichage erreur
 	void beginToken(const char *t);
 	void beginTokenNewLine();
+	void interactive(void* to_exec, ptr_type type);
 
 	// Context courant pour le mode interactif
 	Exec_context ec_tmp, ec_obj;
@@ -49,20 +53,21 @@
   Linked_list* list;
   Operation* op;
   Unit *u;
+  language_type type;
   char *str;
   float value;
   char bool;
 };
 
 // Liste des terminaux pouvant être rencontrés
-%token NUMBER BOOL
+%token NUMBER BOOL TYPE
 %token PLUS MINUS STAR SLASH DIV POW EQUAL POINT ADDR MODULO MORE LESS MORE_E LESS_E AND OR NOT EXIST D_EQUAL T_EQUAL DIF
 %token P_LEFT P_RIGHT BRACE_LEFT BRACE_RIGHT
 %token COMMA
-%token VAR ATTR NEW DELETE
+%token VAR ATTR NEW DELETE TYPEOF IS
 %token IDENTIFIER FUNCTION IF ELSE FOR WHILE LOOP
 %token DUMP
-%token EXPR_END
+%token EXPR_END NEW_LINE
 
 // Opérateur par ordre croissant de priorité
 %left  RETURN BREAK                            // Mot clef return et break, évalués en dernier
@@ -72,6 +77,7 @@
 
 %left  OR AND                                  // Opérations de test logique, plus prioritaire que les opération logiques pour les rendre plus simple ( 'a<b or b>c' )
 %left  DIF D_EQUAL T_EQUAL                     // Opérations logiques d'égalitées
+%left TYPEOF IS                               // Opérations sur les types
 %left  MORE LESS MORE_E LESS_E                 // Opérations logiques, plus prioritaire que les maths pour rendre plus simple ( '1+2 < 3'  par exemple)
 %left  PLUS MINUS                              // Opérations mathématiques les moins prioritaires
 %left  STAR SLASH DIV MODULO                   // Opérations mathématiques prioritaires
@@ -92,6 +98,7 @@
 %type <list>      Statements Unit Param_list Param_call_list
 %type <op>        Expression Statement
 %type <str>       IDENTIFIER
+%type <type>      TYPE
 %type <value>     NUMBER
 %type <bool>      BOOL
 
@@ -124,13 +131,14 @@ Input:
 // Boucle (for/while)
 Loop:
       FOR P_LEFT Expression EXPR_END Expression EXPR_END Expression P_RIGHT Unit {
-
+	  	if($7) linked_list_append(&$9, LLT_OPERATION, (void*)$7);
+    	$$ = unit_loop_new($5, NULL, $3, $9);
       }
     | WHILE P_LEFT Expression P_RIGHT Unit {
-
+    	$$ = unit_loop_new($3, NULL, NULL, $5);
       }
     | LOOP Unit {
-
+    	$$ = unit_loop_new(NULL, NULL, NULL, $2);
       }
 
 // Condition (if/else if/else)
@@ -225,101 +233,64 @@ Statements:
 	  Statements Statement {
 	  	$$ = $1; // Il faut ajouter le statement à la liste
 	  	if($2) linked_list_append(&$1, LLT_OPERATION, (void*)$2);
+	  	if($2 && p.interactive_mod && !inside) interactive((void*)$2, LLT_OPERATION);
 	  }
 	| Statements Unit {
 	  	$$ = $1; // Il faut ajouter l'unit à la liste
 	  	if($2) linked_list_append(&$1, LLT_UNIT, (void*)$2);
+	  	// A faire
 	  }
 	| Statements Condition {
 	  	$$ = $1; // Il faut ajouter la condition à la liste
 	  	if($2) linked_list_append(&$1, LLT_CONDITION, (void*)$2);
+	  	if($2 && p.interactive_mod && !inside) interactive((void*)$2, LLT_CONDITION);
 	  }
 	| Statements Loop {
 	  	$$ = $1; // Il faut ajouter la boucle à la liste
 	  	if($2) linked_list_append(&$1, LLT_LOOP, (void*)$2);
+	  	// A faire
 	  }
 	| Statement {
 		$$ = NULL; // Pas encore de liste, il faut la créer
 	  	if($1) linked_list_append(&$$, LLT_OPERATION, (void*)$1); // On met notre statement dedans
+	  	if($1 && p.interactive_mod && !inside) interactive((void*)$1, LLT_OPERATION);
 	  }
 	| Unit {
 		$$ = NULL; // Pas encore de liste, il faut la créer
 	  	if($1) linked_list_append(&$$, LLT_UNIT, (void*)$1); // On met notre unit dedans
+	  	// A faire
 	  }
 	| Condition {
 		$$ = NULL; // Pas encore de liste, il faut la créer
 	  	if($1) linked_list_append(&$$, LLT_CONDITION, (void*)$1); // On met notre condition dedans
+	  	if($1 && p.interactive_mod && !inside) interactive((void*)$1, LLT_CONDITION);
 	  }
 	| Loop {
 		$$ = NULL; // Pas encore de liste, il faut la créer
 	  	if($1) linked_list_append(&$$, LLT_LOOP, (void*)$1); // On met notre boucle dedans
+	  	// A faire
 	  }
 	;
 
 // Une 'ligne' de code
 Statement:
 	  EXPR_END {
-	  	if(p.interactive_mod) {
+	  	//if(inside > 0) inside--;
+	  	/*if(p.interactive_mod) {
 			puts("[!] Empty statement\n");
 			beginTokenNewLine();
-		} else {
-			$$ = NULL;
-		}
+		} else {*/
+		$$ = NULL;
+		/*}*/
 	  }
+	| NEW_LINE {
+		$$ = NULL;
+	}
 	| Expression EXPR_END {
-	  	if(p.interactive_mod) {
-			// Initialisation valeur retour
-			var_init_loc(&r_base, NULL, 0, T_NULL);
-			r = &r_base;
-
-			if(p.show_operation) {
-				puts("[>] Result in memory :"), op_dump($1);
-				fputs("[*] Press enter to eval", stdout);
-				getchar();
-			}
-
-			// Evaluation
-			puts("\n[<] Evaluating the operations ...");
-			switch(op_eval(&ec_obj, &ec_tmp, $1, &r)) {
-				case RC_WARNING :
-					err_display_last();
-				case RC_BREAK :
-				case RC_OK :
-					break;
-				case RC_ERROR :
-					err_display_last();
-					break;
-				case RC_CRITICAL:
-					err_display_last();
-					printf("[x] Error, interpreter stopped with code %x \n", e.type);
-					return e.type;
-				case RC_RETURN :
-					if(r_base.type == T_NUM)
-						goodbye = (int)r_base.value.v_num;
-					printf("[i] Interpreter stopped (%x) \n", goodbye);
-					exit(goodbye);
-				default:
-					break;
-			}
-
-			puts("[<] Evaluation done");
-
-			if(p.auto_dump) {
-				puts("\n[>] Statement value :");
-				var_dump(&r_base);
-			}
-
-			// Suppression valeur temporaire
-			if(r_base.type != T_NULL)
-				var_empty(&r_base);
-			else
-				r = &r_base;
-
-			beginTokenNewLine();
-			puts("");
-		} else {
-			$$ = $1;
-		}
+		$$ = $1;
+	}
+	| Expression NEW_LINE {
+		$$ = $1;
 	}
 	;
 
@@ -327,6 +298,10 @@ Statement:
 Expression:
 	  Expression EQUAL Expression {                                // Affectation (OP_ASSIGN)
 	  	$$ = op_new(OP_ASSIGN, $1, $3, NULL);
+	  }
+	| TYPE {                                                       // Type (OP_VALUE)
+	  	$$ = op_new(OP_VALUE, NULL, NULL, var_new(NULL, 0, T_TYPE));
+	  	$$->value->value.v_type = $1;
 	  }
 	| NUMBER {                                                     // Nombre (OP_VALUE)
 	  	$$ = op_new(OP_VALUE, NULL, NULL, var_new(NULL, 0, T_NUM));
@@ -464,13 +439,19 @@ Expression:
 	| BREAK {                                                      // Break (OP_BREAK)
 	  	$$ = op_new(OP_BREAK, NULL, NULL, NULL);
 	  }
+	| TYPEOF Expression {                                          // Typeof (OP_TYPE_TYPEOF)	  	
+		$$ = op_new(OP_TYPE_TYPEOF, $2, NULL, NULL);
+	  }
+	| Expression IS Expression {                                   // Typeof (OP_TYPE_IS)	  	
+		$$ = op_new(OP_TYPE_IS, $1, $3, NULL);
+	  }
 	| DUMP Expression {                                            // Dump (OP_OUTPUT_VAR_DUMP)	  	
 		$$ = op_new(OP_OUTPUT_VAR_DUMP, $2, NULL, NULL);
 	  }
 	| Function {                                                   // Déclaration de fonction (OP_UNIT)
 	  	$$ = op_new(OP_UNIT, NULL, NULL, var_new(NULL, 0, T_FUNCTION));
 	  	$$->value->value.v_func = $1; 
-	}
+	  }
 	;
 
 %%
@@ -516,8 +497,10 @@ void beginToken(const char *t) {
 	// Avant le token
 	tokenStart += tokenLength;
 	// Longueur du token
-	tokenLength = strlen(t);
-
+	if(*t != '\t')
+		tokenLength = strlen(t);
+	else
+		tokenLength = 4;
 }
 
 // Nouvelle ligne
@@ -525,6 +508,82 @@ void beginTokenNewLine() {
 	// Remise à zéro
 	tokenStart = 0;
 	tokenLength = 0;
+}
+
+// Lecture interactive (condition/boucle/statement)
+void interactive(void* to_exec, ptr_type type) {
+
+	return_code rc = RC_OK;
+
+	// Initialisation valeur retour
+	var_init_loc(&r_base, NULL, 0, T_NULL);
+	r = &r_base;
+
+
+	// Opération simple
+	if(type == LLT_OPERATION) {
+
+		if(p.show_operation) {
+			puts("[>] Result in memory :"), op_dump((Operation*)to_exec);
+			fputs("[*] Press enter to eval", stdout);
+			getchar();
+		}
+
+		// Evaluation
+		puts("\n[<] Evaluating the statement ...");
+		rc = op_eval(&ec_obj, &ec_tmp, (Operation*)to_exec, &r);
+
+	} else if(type == LLT_CONDITION) {
+
+		if(p.show_operation) {
+			puts("[>] Result in memory :"), unit_cond_dump((Unit_conditional*)to_exec);
+			fputs("[*] Press enter to eval", stdout);
+			getchar();
+		}
+
+		// Evaluation
+		puts("\n[<] Evaluating the condition ...");
+		rc = unit_cond_eval(&ec_obj, &ec_tmp, (Unit_conditional*)to_exec, r);
+	}
+
+	// Analyse
+	switch(rc) {
+		case RC_WARNING :
+			err_display_last();
+		case RC_BREAK :
+		case RC_OK :
+			break;
+		case RC_ERROR :
+			err_display_last();
+			break;
+		case RC_CRITICAL:
+			err_display_last();
+			printf("[x] Error, interpreter stopped with code %x \n", e.type);
+			exit(e.type);
+		case RC_RETURN :
+			if(r_base.type == T_NUM)
+				goodbye = (int)r_base.value.v_num;
+			printf("[i] Interpreter stopped (%x) \n", goodbye);
+			exit(goodbye);
+		default:
+			break;
+	}
+
+	puts("[<] Evaluation done");
+
+	if(p.auto_dump && type == LLT_OPERATION) {
+		puts("\n[>] Statement value :");
+		var_dump(&r_base);
+	}
+
+	// Suppression valeur temporaire
+	if(r_base.type != T_NULL)
+		var_empty(&r_base);
+	else
+		r = &r_base;
+
+	beginTokenNewLine();
+	puts("");
 }
 
 // Main
@@ -536,6 +595,7 @@ int main(int argc, char **argv) {
 
 	if(p.interactive_mod) {
 		puts("[i] Starting in interactive mode");
+		inside = 0; show_prompt = 1;
 		ec_init_loc(&ec_obj);
 		ec_init_loc(&ec_tmp);
 		yyparse();

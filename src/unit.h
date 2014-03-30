@@ -27,9 +27,8 @@ typedef struct s_Unit_conditional {
 
 // Unité - boucle
 typedef struct s_Unit_loop {
-    Linked_list *operations;
+    Linked_list *statements;
     struct s_Operation *start_action;      // Action de début, 'i = 0' par exemple
-    struct s_Operation *end_action;        // Action de fin (Par d'exemple en C)
     struct s_Operation *start_condition;   // Condition de début (testé avant de lancer chaque boucle)
     struct s_Operation *end_condition;     // Condition de fin (cas du do while en C)
 } Unit_loop;
@@ -68,5 +67,10 @@ Unit_conditional* unit_cond_new(Operation* cond, Unit_conditional* before, Linke
 void unit_cond_delete(Unit_conditional* uc);
 
 return_code unit_cond_eval(Exec_context *ec_obj, Exec_context *ec_var, Unit_conditional *uc, Variable* eval_value);
+
+Unit_loop* unit_loop_new(Operation* start_cond, Operation* end_cond, Operation* start_action, Linked_list* statements);
+void unit_loop_delete(Unit_loop* ul);
+return_code unit_loop_eval(Exec_context *ec_obj, Exec_context *ec_var, Unit_loop *ul, Variable* eval_value);
+
 
 #endif // _H_UNIT

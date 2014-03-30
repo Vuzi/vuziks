@@ -21,12 +21,24 @@
 	void beginToken(const char *t);
 	void beginTokenNewLine();
 
+	unsigned int inside;
+	char show_prompt;
+
 	// Redéfinition de la fonction de lecture de yacc (basé sur celle générée)
 	#undef  YY_INPUT
 	#define YY_INPUT(buf,result,max_size) \
 		if ( YY_CURRENT_BUFFER_LVALUE->yy_is_interactive ) { \
 			int c = '*'; size_t n; \
-			fputs("[*] Enter any statement\n> ", stdout); \
+			if(show_prompt) \
+				fputs("[*] Enter any statement\n", stdout); \
+			if(!inside) { \
+				fputs(" > ", stdout); \
+				show_prompt = 1; \
+			} else { \
+				fputs("|> ", stdout); \
+				for(n = 0; n < inside; n++) \
+					 fputs("__", stdout); \
+			} \
 			for ( n = 0; \
 				  n < max_size && (c = getc( yyin )) != EOF && c != '\n'; \
 				  ++n ) \
@@ -82,6 +94,27 @@ var       {char}({char}|{chiffre})*
 		        	beginToken(yytext); return(NUMBER);
 		          }
 
+(?i:true)         { beginToken(yytext); yylval.bool = 1; return(BOOL); }
+(?i:false)	      { beginToken(yytext); yylval.bool = 0; return(BOOL); }
+
+(?i:nonexistent)  { beginToken(yytext); yylval.type = T_NONEXISTENT; return(TYPE); }
+(?i:undefined)    { beginToken(yytext); yylval.type = T_NONEXISTENT; return(TYPE); }
+
+(?i:null)         { beginToken(yytext); yylval.type = T_NULL; return(TYPE); }
+
+(?i:num(ber)?)    { beginToken(yytext); yylval.type = T_NUM; return(TYPE); }
+(?i:digit(al)?)   { beginToken(yytext); yylval.type = T_NUM; return(TYPE); }
+
+(?i:bool(ean)?)   { beginToken(yytext); yylval.type = T_BOOL; return(TYPE); }
+
+(?i:unit)         { beginToken(yytext); yylval.type = T_FUNCTION; return(TYPE); }
+
+(?i:object)       { beginToken(yytext); yylval.type = T_OBJECT; return(TYPE); }
+
+(?i:array)        { beginToken(yytext); yylval.type = T_ARRAY; return(TYPE); }
+
+(?i:list)         { beginToken(yytext); yylval.type = T_LINKEDLIST; return(TYPE); }
+
 "="               { beginToken(yytext); return(EQUAL); }
 
 "+"		          { beginToken(yytext); return(PLUS); }
@@ -105,9 +138,6 @@ var       {char}({char}|{chiffre})*
 (?i:and)	      { beginToken(yytext); return(AND); }
 (?i:or)   	      { beginToken(yytext); return(OR); }
 
-(?i:true)         { beginToken(yytext); yylval.bool = 1; return(BOOL); }
-(?i:false)	      { beginToken(yytext); yylval.bool = 0; return(BOOL); }
-
 "^"		          { beginToken(yytext); return(POW); }
 "."		          { beginToken(yytext); return(POINT); }
 "@"|"&"		      { beginToken(yytext); return(ADDR); }
@@ -122,6 +152,9 @@ var       {char}({char}|{chiffre})*
 (?i:return)       { beginToken(yytext); return(RETURN); }
 (?i:break)  	  { beginToken(yytext); return(BREAK); }
 
+(?i:typeof)  	  { beginToken(yytext); return(TYPEOF); }
+(?i:is)  	      { beginToken(yytext); return(IS); }
+
 (?i:if)           { beginToken(yytext); return(IF); }
 (?i:else)         { beginToken(yytext); return(ELSE); }
 (?i:for)          { beginToken(yytext); return(FOR); }
@@ -133,8 +166,8 @@ var       {char}({char}|{chiffre})*
 "("		          { beginToken(yytext); return(P_LEFT); }
 ")"		          { beginToken(yytext); return(P_RIGHT); }
 
-"{"		          { beginToken(yytext); return(BRACE_LEFT); }
-"}"		          { beginToken(yytext); return(BRACE_RIGHT); }
+"{"		          { beginToken(yytext); inside++; show_prompt = 0; return(BRACE_LEFT); }
+"}" 	          { beginToken(yytext); inside--; return(BRACE_RIGHT); }
 
 ";"               { beginToken(yytext); return(EXPR_END); }
 ","               { beginToken(yytext); return(COMMA); }
@@ -143,7 +176,7 @@ var       {char}({char}|{chiffre})*
 					beginToken(yytext); return(IDENTIFIER);
 				  }
 
-{newline}         { yylineno++; beginTokenNewLine(); }
+{newline}         { yylineno++; beginTokenNewLine(); /*if(p.interactive_mod) return(NEW_LINE);*/ }
 
 .                 { beginToken(yytext); 
 	                printf("[!] Unkown symbol read : '%s'\n", yytext);

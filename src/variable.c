@@ -15,6 +15,9 @@ return_code var_init_loc(Variable *a, char* name, hash_t name_h, language_type t
         switch(type) {
             case T_NULL :
                 return RC_OK;
+            case T_TYPE :
+                a->value.v_type = T_NULL;
+                return RC_OK;
             case T_BOOL :
                 a->value.v_bool = 0;
                 return RC_OK;
@@ -91,6 +94,7 @@ Variable* var_copy_data(Variable *a, Variable *b) {
     switch(a->type) {
         // Cas par recopie simple
         case T_NULL :
+        case T_TYPE :
         case T_NUM :
         case T_BOOL :
         case T_FUNCTION :
@@ -184,6 +188,7 @@ return_code var_empty(Variable *v) {
     switch(v->type) {
         case T_NUM :
         case T_BOOL :
+        case T_TYPE :
         case T_FUNCTION :
         case T_NONEXISTENT :
         case T_NULL :
