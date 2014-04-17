@@ -140,6 +140,9 @@ static int param_make(char* option, char* argument) {
     } else if (!strcmp(option, "v") || !strcmp(option, "version")) {
         show_version();
         exit(0);
+    }  else if (!strcmp(option, "verbose")) {
+        p.verbose = 1;
+        return 0;
     } else {
         printf("[x] Unknown option : '%s'\n", option);
         return 0;

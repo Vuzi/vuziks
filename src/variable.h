@@ -7,52 +7,58 @@
    la manipulation des variables         */
 
 // Includes
+#include <string.h>
+#include "linkedList/linkedList.h"
 #include "hash/hash.h"
-#include "err/err.h"
-#include "str/str.h"
-#include "math/math.h"
 #include "unit.h"
-#include "operation.h"
-
-// Type de donnée possibles
-typedef enum e_language_type {
-	T_NONEXISTENT = -1, T_NULL = 0, T_TYPE = 1, T_BOOL = 2, T_NUM = 3,
-	T_ARRAY = 4, T_LINKEDLIST = 5, T_FUNCTION = 6, T_OBJECT = 7, T_ARGS = 8
-} language_type;
 
 // Représente un objet instancié en mémoire
 typedef struct s_Object {
     Exec_context ec;        // Liste des variables qu'il contient
     unsigned int n_links;   // Nombre de liens sur cet objet
-    hash_t lib_name;        // Hash du nom de la librairie
+    char* name;             // Type d'objet
+    hash_t name_h;          // Hash type d'objet
     void* data;             // Données si utilisé par une bibliothèque extérieure
 } Object;
 
+// Type de donnée possibles
+typedef enum e_language_type {
+	T_NONEXISTENT = -1,
+	T_NULL = 0,
+	T_TYPE = 1,
+	T_BOOL = 2,
+	T_NUM = 3,
+	T_ARRAY = 4,
+	T_LINKEDLIST = 5,
+	T_FUNCTION = 6,
+	T_FUNCTION_BUILTIN = 7,
+	T_OBJECT = 8,
+	T_ARGS = 9
+} language_type;
+
 // Représente une valeur possible (null n'ayant pas de représentation)
 typedef union u_Language_value {
-    // Variables naturelles
     language_type v_type;
 	char v_bool;
 	double v_num;
-	// Références
-	// Array
 	Linked_list *v_llist;
-	Variable *v_ref;
+	struct s_Variable *v_ref;
 	Unit *v_func;
+	return_code (*v_func_builtin)(Object*, Linked_list*, struct s_Variable*, int);
 	Object *v_obj;
 
 } Language_value;
 
 // Variable en mémoire
-typedef struct s_Variale {
-	char* name;        // Nom de la variable (en toute lettre)
+typedef struct s_Variable {
+	char* name;              // Nom de la variable (en toute lettre)
 	hash_t name_h;           // Hashage du nom de la variable, pour la trouver plus vite (si 0 alors libérable)
 	language_type type;      // Type de la variable
 	Language_value value;    // Valeur de la variable
 	Exec_context* container; // Element contenant (uniquement quand attribut)
 } Variable;
 
-#include "variableOp.h"
+#include "operation.h"
 #include "debug.h"
 
 // Prototypes

@@ -1,0 +1,16 @@
+#ifndef _H_CONSOLE
+#define _H_CONSOLE
+
+#include "built-in.h"
+#include "../variable.h"
+#include "../unit.h"
+
+typedef struct s_Object Object;
+typedef struct s_Exec_context Exec_context;
+
+// Prototypes
+return_code console_print(Object* o, Linked_list *args, Variable* eval_value, int as_constructor);
+return_code console_println(Object* o, Linked_list *args, Variable* eval_value, int as_constructor);
+Object* console_init(Exec_context* ec_obj);
+
+#endif // _H_CONSOLE

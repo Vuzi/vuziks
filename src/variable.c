@@ -29,6 +29,9 @@ return_code var_init_loc(Variable *a, char* name, hash_t name_h, language_type t
             case T_LINKEDLIST :
                 a->value.v_llist = NULL;
                 return RC_OK;
+            case T_FUNCTION_BUILTIN :
+                a->value.v_func = NULL;
+                return RC_OK;
             case T_FUNCTION :
                 a->value.v_func = NULL;
                 return RC_OK;
@@ -98,6 +101,7 @@ Variable* var_copy_data(Variable *a, Variable *b) {
         case T_NUM :
         case T_BOOL :
         case T_FUNCTION :
+        case T_FUNCTION_BUILTIN :
             b->value = a->value;
             b->type = a->type;
             break;
@@ -190,6 +194,7 @@ return_code var_empty(Variable *v) {
         case T_BOOL :
         case T_TYPE :
         case T_FUNCTION :
+        case T_FUNCTION_BUILTIN :
         case T_NONEXISTENT :
         case T_NULL :
             break;

@@ -6,6 +6,7 @@
 	#include <stdlib.h>
 
 
+	#include "variable.h"
 	#include "variableOp.h"
 	#include "operation.h"
 	#include "unit.h"
@@ -16,6 +17,8 @@
 	#include "constant.h"
 
 	#include "parser.h"
+
+	#include "builtin/built-in.h"
 
 	// Valeurs externes
 	extern char* yytext;
@@ -37,13 +40,16 @@
 	// Context courant pour le mode interactif
 	Exec_context ec_tmp, ec_obj;
 	Variable r_base, *r;
-	
+
 	// Variables locales
 	static int goodbye = 0;
 
 	static int tokenStart = 0;
 	static int tokenLength = 0;
 
+	// Tableau des fonctions built-in lancées de base avec le programme
+	struct s_Object*(*func_builtin_tab[128])(Exec_context*);
+	unsigned int func_builtin_tab_n;
 %}
 
 %union {
@@ -238,7 +244,7 @@ Statements:
 	| Statements Unit {
 	  	$$ = $1; // Il faut ajouter l'unit à la liste
 	  	if($2) linked_list_append(&$1, LLT_UNIT, (void*)$2);
-	  	// A faire
+	  	if($2 && p.interactive_mod && !inside) interactive((void*)$2, LLT_UNIT);
 	  }
 	| Statements Condition {
 	  	$$ = $1; // Il faut ajouter la condition à la liste
@@ -248,7 +254,7 @@ Statements:
 	| Statements Loop {
 	  	$$ = $1; // Il faut ajouter la boucle à la liste
 	  	if($2) linked_list_append(&$1, LLT_LOOP, (void*)$2);
-	  	// A faire
+	  	if($2 && p.interactive_mod && !inside) interactive((void*)$2, LLT_LOOP);
 	  }
 	| Statement {
 		$$ = NULL; // Pas encore de liste, il faut la créer
@@ -258,7 +264,7 @@ Statements:
 	| Unit {
 		$$ = NULL; // Pas encore de liste, il faut la créer
 	  	if($1) linked_list_append(&$$, LLT_UNIT, (void*)$1); // On met notre unit dedans
-	  	// A faire
+	  	if($1 && p.interactive_mod && !inside) interactive((void*)$1, LLT_UNIT);
 	  }
 	| Condition {
 		$$ = NULL; // Pas encore de liste, il faut la créer
@@ -268,7 +274,7 @@ Statements:
 	| Loop {
 		$$ = NULL; // Pas encore de liste, il faut la créer
 	  	if($1) linked_list_append(&$$, LLT_LOOP, (void*)$1); // On met notre boucle dedans
-	  	// A faire
+	  	if($1 && p.interactive_mod && !inside) interactive((void*)$1, LLT_LOOP);
 	  }
 	;
 
@@ -439,18 +445,18 @@ Expression:
 	| BREAK {                                                      // Break (OP_BREAK)
 	  	$$ = op_new(OP_BREAK, NULL, NULL, NULL);
 	  }
-	| TYPEOF Expression {                                          // Typeof (OP_TYPE_TYPEOF)	  	
+	| TYPEOF Expression {                                          // Typeof (OP_TYPE_TYPEOF)
 		$$ = op_new(OP_TYPE_TYPEOF, $2, NULL, NULL);
 	  }
-	| Expression IS Expression {                                   // Typeof (OP_TYPE_IS)	  	
+	| Expression IS Expression {                                   // Typeof (OP_TYPE_IS)
 		$$ = op_new(OP_TYPE_IS, $1, $3, NULL);
 	  }
-	| DUMP Expression {                                            // Dump (OP_OUTPUT_VAR_DUMP)	  	
+	| DUMP Expression {                                            // Dump (OP_OUTPUT_VAR_DUMP)
 		$$ = op_new(OP_OUTPUT_VAR_DUMP, $2, NULL, NULL);
 	  }
 	| Function {                                                   // Déclaration de fonction (OP_UNIT)
 	  	$$ = op_new(OP_UNIT, NULL, NULL, var_new(NULL, 0, T_FUNCTION));
-	  	$$->value->value.v_func = $1; 
+	  	$$->value->value.v_func = $1;
 	  }
 	;
 
@@ -488,11 +494,11 @@ int yyerror(const char *s) {
     puts("^");
 
   	printf("[x] Error | %d: %s: '%s'\n", yylineno, s, yytext);
-  	
+
   	return 0;
 }
 
-// Début d'un token 
+// Début d'un token
 void beginToken(const char *t) {
 	// Avant le token
 	tokenStart += tokenLength;
@@ -530,7 +536,7 @@ void interactive(void* to_exec, ptr_type type) {
 		}
 
 		// Evaluation
-		puts("\n[<] Evaluating the statement ...");
+		if(p.verbose) puts("\n[<] Evaluating the statement ...");
 		rc = op_eval(&ec_obj, &ec_tmp, (Operation*)to_exec, &r);
 
 	} else if(type == LLT_CONDITION) {
@@ -542,8 +548,30 @@ void interactive(void* to_exec, ptr_type type) {
 		}
 
 		// Evaluation
-		puts("\n[<] Evaluating the condition ...");
+		if(p.verbose) puts("\n[<] Evaluating the condition ...");
 		rc = unit_cond_eval(&ec_obj, &ec_tmp, (Unit_conditional*)to_exec, r);
+	} else if(type == LLT_LOOP) {
+
+		if(p.show_operation) {
+			puts("[>] Result in memory :"), unit_loop_dump((Unit_loop*)to_exec);
+			fputs("[*] Press enter to eval", stdout);
+			getchar();
+		}
+
+		// Evaluation
+		if(p.verbose) puts("\n[<] Evaluating the loop ...");
+		rc = unit_loop_eval(&ec_obj, &ec_tmp, (Unit_loop*)to_exec, r);
+	} else if(type == LLT_UNIT) {
+
+		if(p.show_operation) {
+			puts("[>] Result in memory :"), unit_dump((Unit*)to_exec);
+			fputs("[*] Press enter to eval", stdout);
+			getchar();
+		}
+
+		// Evaluation
+		if(p.verbose) puts("\n[<] Evaluating the unit ...");
+		rc = unit_eval(&ec_obj, &ec_tmp, ((Unit*)to_exec)->statements, r);
 	}
 
 	// Analyse
@@ -569,7 +597,7 @@ void interactive(void* to_exec, ptr_type type) {
 			break;
 	}
 
-	puts("[<] Evaluation done");
+	if(p.verbose) puts("[<] Evaluation done");
 
 	if(p.auto_dump && type == LLT_OPERATION) {
 		puts("\n[>] Statement value :");
@@ -583,7 +611,7 @@ void interactive(void* to_exec, ptr_type type) {
 		r = &r_base;
 
 	beginTokenNewLine();
-	puts("");
+	if(p.verbose) puts("");
 }
 
 // Main
@@ -593,11 +621,22 @@ int main(int argc, char **argv) {
 	params_init();
 	params_make(argc, argv);
 
+	// Init des fonctions built-in
+	func_builtin_tab[0] = console_init;
+	func_builtin_tab_n = 1;
+
+
 	if(p.interactive_mod) {
 		puts("[i] Starting in interactive mode");
 		inside = 0; show_prompt = 1;
+
+		// Contexte
 		ec_init_loc(&ec_obj);
 		ec_init_loc(&ec_tmp);
+
+		// Initialisation des fonctions built-in
+    	unit_init_builtin(&ec_obj);
+
 		yyparse();
 	} else {
 		puts("[i] Starting in file mode");

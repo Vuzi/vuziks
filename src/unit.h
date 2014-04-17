@@ -8,9 +8,7 @@
    d'opérations du langage                */
 
 // Includes
-#include "constant.h"
 #include "linkedList/linkedList.h"
-#include "err/err.h"
 
 // Unité - fonction
 typedef struct s_Unit {
@@ -40,21 +38,28 @@ typedef struct s_Exec_context {
     struct s_Object* object;
 } Exec_context;
 
-#include "variableOp.h"
+#include "variable.h"
 #include "operation.h"
+#include "constant.h"
 
-
-typedef struct s_Variale Variable;
+typedef struct s_Variable Variable;
+typedef struct s_Operation_identifier Operation_identifier;
 typedef struct s_Operation Operation;
+typedef enum e_operation_type operation_type;
 
 // Prototypes
+void unit_init_builtin(Exec_context* ec);
+
 void unit_main(Unit* start);
 
 return_code unit_function(Exec_context *ec_obj, Exec_context *ec_var_caller, Linked_list* args, Unit* function, Variable* eval_value);
 return_code unit_constructor(Exec_context *ec_obj_caller, Exec_context *ec_var_caller, Linked_list* args, Unit* function, Variable* eval_value);
+return_code unit_function_builtin(Exec_context *ec_obj, Exec_context *ec_var_caller, Variable* function, Linked_list* args, Variable* eval_value, int as_constructor);
 
 Unit* unit_new(Linked_list *statements, Linked_list *args);
 void unit_empty(Unit *u);
+
+return_code unit_eval(Exec_context* ec_obj, Exec_context* ec_var, Linked_list* stmts, Variable* eval_value);
 
 void ec_init_loc(Exec_context *ec);
 void ec_empty(Exec_context *ec);

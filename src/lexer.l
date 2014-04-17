@@ -14,6 +14,7 @@
 	#include "debug.h"
 
 	#include "hash/hash.h"
+	#include "str/str.h"
 
 	#include "parser.h"
 
@@ -30,7 +31,7 @@
 		if ( YY_CURRENT_BUFFER_LVALUE->yy_is_interactive ) { \
 			int c = '*'; size_t n; \
 			if(show_prompt) \
-				fputs("[*] Enter any statement\n", stdout); \
+				if(p.verbose) fputs("[*] Enter any statement\n", stdout); \
 			if(!inside) { \
 				fputs(" > ", stdout); \
 				show_prompt = 1; \

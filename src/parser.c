@@ -72,6 +72,7 @@
 	#include <stdlib.h>
 
 
+	#include "variable.h"
 	#include "variableOp.h"
 	#include "operation.h"
 	#include "unit.h"
@@ -82,6 +83,8 @@
 	#include "constant.h"
 
 	#include "parser.h"
+
+	#include "builtin/built-in.h"
 
 	// Valeurs externes
 	extern char* yytext;
@@ -103,16 +106,19 @@
 	// Context courant pour le mode interactif
 	Exec_context ec_tmp, ec_obj;
 	Variable r_base, *r;
-	
+
 	// Variables locales
 	static int goodbye = 0;
 
 	static int tokenStart = 0;
 	static int tokenLength = 0;
 
+	// Tableau des fonctions built-in lancées de base avec le programme
+	struct s_Object*(*func_builtin_tab[128])(Exec_context*);
+	unsigned int func_builtin_tab_n;
 
 /* Line 371 of yacc.c  */
-#line 116 "parser.tab.c"
+#line 122 "parser.tab.c"
 
 # ifndef YY_NULL
 #  if defined __cplusplus && 201103L <= __cplusplus
@@ -206,7 +212,7 @@ extern int yydebug;
 typedef union YYSTYPE
 {
 /* Line 387 of yacc.c  */
-#line 49 "parser.y"
+#line 55 "parser.y"
 
   Unit_conditional *condition;
   Unit_loop *loop;
@@ -221,7 +227,7 @@ typedef union YYSTYPE
 
 
 /* Line 387 of yacc.c  */
-#line 225 "parser.tab.c"
+#line 231 "parser.tab.c"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
@@ -249,7 +255,7 @@ int yyparse ();
 /* Copy the second part of user declarations.  */
 
 /* Line 390 of yacc.c  */
-#line 253 "parser.tab.c"
+#line 259 "parser.tab.c"
 
 #ifdef short
 # undef short
@@ -574,14 +580,14 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,   109,   109,   111,   133,   137,   140,   146,   149,   154,
-     161,   171,   178,   191,   194,   201,   205,   213,   217,   225,
-     233,   238,   243,   248,   253,   258,   263,   268,   277,   286,
-     289,   292,   299,   302,   306,   310,   314,   319,   324,   329,
-     334,   339,   342,   347,   350,   355,   358,   363,   368,   373,
-     376,   379,   382,   385,   388,   391,   394,   397,   400,   403,
-     406,   409,   412,   415,   418,   421,   424,   427,   430,   433,
-     436,   439,   442,   445,   448,   451
+       0,   115,   115,   117,   139,   143,   146,   152,   155,   160,
+     167,   177,   184,   197,   200,   207,   211,   219,   223,   231,
+     239,   244,   249,   254,   259,   264,   269,   274,   283,   292,
+     295,   298,   305,   308,   312,   316,   320,   325,   330,   335,
+     340,   345,   348,   353,   356,   361,   364,   369,   374,   379,
+     382,   385,   388,   391,   394,   397,   400,   403,   406,   409,
+     412,   415,   418,   421,   424,   427,   430,   433,   436,   439,
+     442,   445,   448,   451,   454,   457
 };
 #endif
 
@@ -1700,7 +1706,7 @@ yyreduce:
     {
         case 3:
 /* Line 1792 of yacc.c  */
-#line 111 "parser.y"
+#line 117 "parser.y"
     {
 			Unit u;
 			u.args = NULL;
@@ -1723,7 +1729,7 @@ yyreduce:
 
   case 4:
 /* Line 1792 of yacc.c  */
-#line 133 "parser.y"
+#line 139 "parser.y"
     {
 	  	if((yyvsp[(7) - (9)].op)) linked_list_append(&(yyvsp[(9) - (9)].list), LLT_OPERATION, (void*)(yyvsp[(7) - (9)].op));
     	(yyval.loop) = unit_loop_new((yyvsp[(5) - (9)].op), NULL, (yyvsp[(3) - (9)].op), (yyvsp[(9) - (9)].list));
@@ -1732,7 +1738,7 @@ yyreduce:
 
   case 5:
 /* Line 1792 of yacc.c  */
-#line 137 "parser.y"
+#line 143 "parser.y"
     {
     	(yyval.loop) = unit_loop_new((yyvsp[(3) - (5)].op), NULL, NULL, (yyvsp[(5) - (5)].list));
       }
@@ -1740,7 +1746,7 @@ yyreduce:
 
   case 6:
 /* Line 1792 of yacc.c  */
-#line 140 "parser.y"
+#line 146 "parser.y"
     {
     	(yyval.loop) = unit_loop_new(NULL, NULL, NULL, (yyvsp[(2) - (2)].list));
       }
@@ -1748,7 +1754,7 @@ yyreduce:
 
   case 7:
 /* Line 1792 of yacc.c  */
-#line 146 "parser.y"
+#line 152 "parser.y"
     {
 	  	(yyval.condition) = unit_cond_new((yyvsp[(3) - (5)].op), NULL, (yyvsp[(5) - (5)].list));
 	  }
@@ -1756,7 +1762,7 @@ yyreduce:
 
   case 8:
 /* Line 1792 of yacc.c  */
-#line 149 "parser.y"
+#line 155 "parser.y"
     {
 		Linked_list* ll = NULL;
 	  	linked_list_append(&ll, LLT_OPERATION, (void*)(yyvsp[(5) - (5)].op));
@@ -1766,7 +1772,7 @@ yyreduce:
 
   case 9:
 /* Line 1792 of yacc.c  */
-#line 154 "parser.y"
+#line 160 "parser.y"
     {
 		Unit_conditional *uc = (yyvsp[(1) - (7)].condition);
 		while(uc->next)
@@ -1778,7 +1784,7 @@ yyreduce:
 
   case 10:
 /* Line 1792 of yacc.c  */
-#line 161 "parser.y"
+#line 167 "parser.y"
     {
 		Linked_list* ll = NULL;
 	  	linked_list_append(&ll, LLT_OPERATION, (void*)(yyvsp[(7) - (7)].op));
@@ -1793,7 +1799,7 @@ yyreduce:
 
   case 11:
 /* Line 1792 of yacc.c  */
-#line 171 "parser.y"
+#line 177 "parser.y"
     {
 		Unit_conditional *uc = (yyvsp[(1) - (3)].condition);
 		while(uc->next)
@@ -1805,7 +1811,7 @@ yyreduce:
 
   case 12:
 /* Line 1792 of yacc.c  */
-#line 178 "parser.y"
+#line 184 "parser.y"
     {
 		Linked_list* ll = NULL;
 	  	linked_list_append(&ll, LLT_OPERATION, (void*)(yyvsp[(3) - (3)].op));
@@ -1820,7 +1826,7 @@ yyreduce:
 
   case 13:
 /* Line 1792 of yacc.c  */
-#line 191 "parser.y"
+#line 197 "parser.y"
     {
 	  	(yyval.function) = unit_new((yyvsp[(4) - (4)].list), NULL);
 	  }
@@ -1828,7 +1834,7 @@ yyreduce:
 
   case 14:
 /* Line 1792 of yacc.c  */
-#line 194 "parser.y"
+#line 200 "parser.y"
     {
 	  	(yyval.function) = unit_new((yyvsp[(5) - (5)].list), (yyvsp[(3) - (5)].list));
 	  }
@@ -1836,7 +1842,7 @@ yyreduce:
 
   case 15:
 /* Line 1792 of yacc.c  */
-#line 201 "parser.y"
+#line 207 "parser.y"
     {
 		(yyval.list) = NULL;
 		linked_list_append(&(yyval.list), LLT_VARIABLE, (void*)var_new((yyvsp[(1) - (1)].str), str_hash((yyvsp[(1) - (1)].str)), T_NULL));
@@ -1845,7 +1851,7 @@ yyreduce:
 
   case 16:
 /* Line 1792 of yacc.c  */
-#line 205 "parser.y"
+#line 211 "parser.y"
     {
 		(yyval.list) = (yyvsp[(1) - (3)].list);
 		linked_list_append(&(yyvsp[(1) - (3)].list), LLT_VARIABLE, (void*)var_new((yyvsp[(3) - (3)].str), str_hash((yyvsp[(3) - (3)].str)), T_NULL));
@@ -1854,7 +1860,7 @@ yyreduce:
 
   case 17:
 /* Line 1792 of yacc.c  */
-#line 213 "parser.y"
+#line 219 "parser.y"
     {
 		(yyval.list) = NULL;
 		linked_list_append(&(yyval.list), LLT_OPERATION, (void*)(yyvsp[(1) - (1)].op));
@@ -1863,7 +1869,7 @@ yyreduce:
 
   case 18:
 /* Line 1792 of yacc.c  */
-#line 217 "parser.y"
+#line 223 "parser.y"
     {
 		(yyval.list) = (yyvsp[(1) - (3)].list);
 		linked_list_append(&(yyvsp[(1) - (3)].list), LLT_OPERATION, (void*)(yyvsp[(3) - (3)].op));
@@ -1872,7 +1878,7 @@ yyreduce:
 
   case 19:
 /* Line 1792 of yacc.c  */
-#line 225 "parser.y"
+#line 231 "parser.y"
     {
 		(yyval.list) = (yyvsp[(2) - (3)].list);
 	  }
@@ -1880,7 +1886,7 @@ yyreduce:
 
   case 20:
 /* Line 1792 of yacc.c  */
-#line 233 "parser.y"
+#line 239 "parser.y"
     {
 	  	(yyval.list) = (yyvsp[(1) - (2)].list); // Il faut ajouter le statement à la liste
 	  	if((yyvsp[(2) - (2)].op)) linked_list_append(&(yyvsp[(1) - (2)].list), LLT_OPERATION, (void*)(yyvsp[(2) - (2)].op));
@@ -1890,17 +1896,17 @@ yyreduce:
 
   case 21:
 /* Line 1792 of yacc.c  */
-#line 238 "parser.y"
+#line 244 "parser.y"
     {
 	  	(yyval.list) = (yyvsp[(1) - (2)].list); // Il faut ajouter l'unit à la liste
 	  	if((yyvsp[(2) - (2)].list)) linked_list_append(&(yyvsp[(1) - (2)].list), LLT_UNIT, (void*)(yyvsp[(2) - (2)].list));
-	  	// A faire
+	  	if((yyvsp[(2) - (2)].list) && p.interactive_mod && !inside) interactive((void*)(yyvsp[(2) - (2)].list), LLT_UNIT);
 	  }
     break;
 
   case 22:
 /* Line 1792 of yacc.c  */
-#line 243 "parser.y"
+#line 249 "parser.y"
     {
 	  	(yyval.list) = (yyvsp[(1) - (2)].list); // Il faut ajouter la condition à la liste
 	  	if((yyvsp[(2) - (2)].condition)) linked_list_append(&(yyvsp[(1) - (2)].list), LLT_CONDITION, (void*)(yyvsp[(2) - (2)].condition));
@@ -1910,17 +1916,17 @@ yyreduce:
 
   case 23:
 /* Line 1792 of yacc.c  */
-#line 248 "parser.y"
+#line 254 "parser.y"
     {
 	  	(yyval.list) = (yyvsp[(1) - (2)].list); // Il faut ajouter la boucle à la liste
 	  	if((yyvsp[(2) - (2)].loop)) linked_list_append(&(yyvsp[(1) - (2)].list), LLT_LOOP, (void*)(yyvsp[(2) - (2)].loop));
-	  	// A faire
+	  	if((yyvsp[(2) - (2)].loop) && p.interactive_mod && !inside) interactive((void*)(yyvsp[(2) - (2)].loop), LLT_LOOP);
 	  }
     break;
 
   case 24:
 /* Line 1792 of yacc.c  */
-#line 253 "parser.y"
+#line 259 "parser.y"
     {
 		(yyval.list) = NULL; // Pas encore de liste, il faut la créer
 	  	if((yyvsp[(1) - (1)].op)) linked_list_append(&(yyval.list), LLT_OPERATION, (void*)(yyvsp[(1) - (1)].op)); // On met notre statement dedans
@@ -1930,17 +1936,17 @@ yyreduce:
 
   case 25:
 /* Line 1792 of yacc.c  */
-#line 258 "parser.y"
+#line 264 "parser.y"
     {
 		(yyval.list) = NULL; // Pas encore de liste, il faut la créer
 	  	if((yyvsp[(1) - (1)].list)) linked_list_append(&(yyval.list), LLT_UNIT, (void*)(yyvsp[(1) - (1)].list)); // On met notre unit dedans
-	  	// A faire
+	  	if((yyvsp[(1) - (1)].list) && p.interactive_mod && !inside) interactive((void*)(yyvsp[(1) - (1)].list), LLT_UNIT);
 	  }
     break;
 
   case 26:
 /* Line 1792 of yacc.c  */
-#line 263 "parser.y"
+#line 269 "parser.y"
     {
 		(yyval.list) = NULL; // Pas encore de liste, il faut la créer
 	  	if((yyvsp[(1) - (1)].condition)) linked_list_append(&(yyval.list), LLT_CONDITION, (void*)(yyvsp[(1) - (1)].condition)); // On met notre condition dedans
@@ -1950,17 +1956,17 @@ yyreduce:
 
   case 27:
 /* Line 1792 of yacc.c  */
-#line 268 "parser.y"
+#line 274 "parser.y"
     {
 		(yyval.list) = NULL; // Pas encore de liste, il faut la créer
 	  	if((yyvsp[(1) - (1)].loop)) linked_list_append(&(yyval.list), LLT_LOOP, (void*)(yyvsp[(1) - (1)].loop)); // On met notre boucle dedans
-	  	// A faire
+	  	if((yyvsp[(1) - (1)].loop) && p.interactive_mod && !inside) interactive((void*)(yyvsp[(1) - (1)].loop), LLT_LOOP);
 	  }
     break;
 
   case 28:
 /* Line 1792 of yacc.c  */
-#line 277 "parser.y"
+#line 283 "parser.y"
     {
 	  	//if(inside > 0) inside--;
 	  	/*if(p.interactive_mod) {
@@ -1974,7 +1980,7 @@ yyreduce:
 
   case 29:
 /* Line 1792 of yacc.c  */
-#line 286 "parser.y"
+#line 292 "parser.y"
     {
 		(yyval.op) = NULL;
 	}
@@ -1982,7 +1988,7 @@ yyreduce:
 
   case 30:
 /* Line 1792 of yacc.c  */
-#line 289 "parser.y"
+#line 295 "parser.y"
     {
 		(yyval.op) = (yyvsp[(1) - (2)].op);
 	}
@@ -1990,7 +1996,7 @@ yyreduce:
 
   case 31:
 /* Line 1792 of yacc.c  */
-#line 292 "parser.y"
+#line 298 "parser.y"
     {
 		(yyval.op) = (yyvsp[(1) - (2)].op);
 	}
@@ -1998,7 +2004,7 @@ yyreduce:
 
   case 32:
 /* Line 1792 of yacc.c  */
-#line 299 "parser.y"
+#line 305 "parser.y"
     {                                // Affectation (OP_ASSIGN)
 	  	(yyval.op) = op_new(OP_ASSIGN, (yyvsp[(1) - (3)].op), (yyvsp[(3) - (3)].op), NULL);
 	  }
@@ -2006,7 +2012,7 @@ yyreduce:
 
   case 33:
 /* Line 1792 of yacc.c  */
-#line 302 "parser.y"
+#line 308 "parser.y"
     {                                                       // Type (OP_VALUE)
 	  	(yyval.op) = op_new(OP_VALUE, NULL, NULL, var_new(NULL, 0, T_TYPE));
 	  	(yyval.op)->value->value.v_type = (yyvsp[(1) - (1)].type);
@@ -2015,7 +2021,7 @@ yyreduce:
 
   case 34:
 /* Line 1792 of yacc.c  */
-#line 306 "parser.y"
+#line 312 "parser.y"
     {                                                     // Nombre (OP_VALUE)
 	  	(yyval.op) = op_new(OP_VALUE, NULL, NULL, var_new(NULL, 0, T_NUM));
 	  	(yyval.op)->value->value.v_num = (yyvsp[(1) - (1)].value);
@@ -2024,7 +2030,7 @@ yyreduce:
 
   case 35:
 /* Line 1792 of yacc.c  */
-#line 310 "parser.y"
+#line 316 "parser.y"
     {                                                       // Booléen (OP_VALUE)
 	  	(yyval.op) = op_new(OP_VALUE, NULL, NULL, var_new(NULL, 0, T_BOOL));
 	  	(yyval.op)->value->value.v_bool = (yyvsp[(1) - (1)].bool);
@@ -2033,7 +2039,7 @@ yyreduce:
 
   case 36:
 /* Line 1792 of yacc.c  */
-#line 314 "parser.y"
+#line 320 "parser.y"
     {                                // Accès a une variable membre (OP_ATTR_ACCESS)
 	  	(yyval.op) = op_new(OP_ATTR_ACCESS, (yyvsp[(1) - (3)].op), NULL, NULL);
 	  	(yyval.op)->identifier.s = (yyvsp[(3) - (3)].str);
@@ -2043,7 +2049,7 @@ yyreduce:
 
   case 37:
 /* Line 1792 of yacc.c  */
-#line 319 "parser.y"
+#line 325 "parser.y"
     {                                         // Création d'une variable temporaire (OP_DEC_VAR)
 		(yyval.op) = op_new(OP_DEC_VAR, NULL, NULL, NULL);
 	  	(yyval.op)->identifier.s = (yyvsp[(3) - (3)].str);
@@ -2053,7 +2059,7 @@ yyreduce:
 
   case 38:
 /* Line 1792 of yacc.c  */
-#line 324 "parser.y"
+#line 330 "parser.y"
     {                                        // Création d'une variable membre (OP_DEC_ATTR)
 		(yyval.op) = op_new(OP_DEC_ATTR, NULL, NULL, NULL);
 	  	(yyval.op)->identifier.s = (yyvsp[(3) - (3)].str);
@@ -2063,7 +2069,7 @@ yyreduce:
 
   case 39:
 /* Line 1792 of yacc.c  */
-#line 329 "parser.y"
+#line 335 "parser.y"
     {                                      // Création d'une variable temporaire (OP_DEC_VAR)
 		(yyval.op) = op_new(OP_DELETE_VAR, NULL, NULL, NULL);
 	  	(yyval.op)->identifier.s = (yyvsp[(3) - (3)].str);
@@ -2073,7 +2079,7 @@ yyreduce:
 
   case 40:
 /* Line 1792 of yacc.c  */
-#line 334 "parser.y"
+#line 340 "parser.y"
     {                                     // Création d'une variable membre (OP_DEC_ATTR)
 		(yyval.op) = op_new(OP_DELETE_ATTR, NULL, NULL, NULL);
 	  	(yyval.op)->identifier.s = (yyvsp[(3) - (3)].str);
@@ -2083,7 +2089,7 @@ yyreduce:
 
   case 41:
 /* Line 1792 of yacc.c  */
-#line 339 "parser.y"
+#line 345 "parser.y"
     {                                  // Parenthèses, uniquement utile aux prioritées
 		(yyval.op) = (yyvsp[(2) - (3)].op);
 	  }
@@ -2091,7 +2097,7 @@ yyreduce:
 
   case 42:
 /* Line 1792 of yacc.c  */
-#line 342 "parser.y"
+#line 348 "parser.y"
     {              // Appel d'unit comme fonction (OP_UNIT_NEW)
 		Variable *v = var_new(NULL, 0, T_ARGS);
 		v->value.v_llist = (yyvsp[(4) - (5)].list);
@@ -2101,7 +2107,7 @@ yyreduce:
 
   case 43:
 /* Line 1792 of yacc.c  */
-#line 347 "parser.y"
+#line 353 "parser.y"
     {                              // Appel d'unit comme fonction (OP_UNIT_NEW)
 	  	(yyval.op) = op_new(OP_UNIT_NEW, (yyvsp[(2) - (4)].op), NULL, NULL);
 	  }
@@ -2109,7 +2115,7 @@ yyreduce:
 
   case 44:
 /* Line 1792 of yacc.c  */
-#line 350 "parser.y"
+#line 356 "parser.y"
     {                  // Appel d'unit comme fonction (OP_UNIT_CALL)
 		Variable *v = var_new(NULL, 0, T_ARGS);
 		v->value.v_llist = (yyvsp[(3) - (4)].list);
@@ -2119,7 +2125,7 @@ yyreduce:
 
   case 45:
 /* Line 1792 of yacc.c  */
-#line 355 "parser.y"
+#line 361 "parser.y"
     {                                  // Appel d'unit comme fonction (OP_UNIT_CALL)
 	  	(yyval.op) = op_new(OP_UNIT_CALL, (yyvsp[(1) - (3)].op), NULL, NULL);
 	  }
@@ -2127,7 +2133,7 @@ yyreduce:
 
   case 46:
 /* Line 1792 of yacc.c  */
-#line 358 "parser.y"
+#line 364 "parser.y"
     {                                                 // Accès à une variable (OP_ACCES)
 	  	(yyval.op) = op_new(OP_ACCES, NULL, NULL, NULL);
 	  	(yyval.op)->identifier.s = (yyvsp[(1) - (1)].str);
@@ -2137,7 +2143,7 @@ yyreduce:
 
   case 47:
 /* Line 1792 of yacc.c  */
-#line 363 "parser.y"
+#line 369 "parser.y"
     {                                             // Accès à une variable (OP_ACCES)
 	  	(yyval.op) = op_new(OP_ACCES_VAR, NULL, NULL, NULL);
 	  	(yyval.op)->identifier.s = (yyvsp[(2) - (2)].str);
@@ -2147,7 +2153,7 @@ yyreduce:
 
   case 48:
 /* Line 1792 of yacc.c  */
-#line 368 "parser.y"
+#line 374 "parser.y"
     {                                            // Accès à une variable (OP_ACCES)
 	  	(yyval.op) = op_new(OP_ACCES_ATTR, NULL, NULL, NULL);
 	  	(yyval.op)->identifier.s = (yyvsp[(2) - (2)].str);
@@ -2157,7 +2163,7 @@ yyreduce:
 
   case 49:
 /* Line 1792 of yacc.c  */
-#line 373 "parser.y"
+#line 379 "parser.y"
     {                                  // Puissance (OP_MATH_POW)
 	  	(yyval.op) = op_new(OP_MATH_POW, (yyvsp[(1) - (3)].op), (yyvsp[(3) - (3)].op), NULL);
 	  }
@@ -2165,7 +2171,7 @@ yyreduce:
 
   case 50:
 /* Line 1792 of yacc.c  */
-#line 376 "parser.y"
+#line 382 "parser.y"
     {                                 // Addition (OP_MATH_PLUS)
 	  	(yyval.op) = op_new(OP_MATH_PLUS, (yyvsp[(1) - (3)].op), (yyvsp[(3) - (3)].op), NULL);
 	  }
@@ -2173,7 +2179,7 @@ yyreduce:
 
   case 51:
 /* Line 1792 of yacc.c  */
-#line 379 "parser.y"
+#line 385 "parser.y"
     {                                // Soustraction (OP_MATH_MINUS)
 	  	(yyval.op) = op_new(OP_MATH_MINUS, (yyvsp[(1) - (3)].op), (yyvsp[(3) - (3)].op), NULL);
 	  }
@@ -2181,7 +2187,7 @@ yyreduce:
 
   case 52:
 /* Line 1792 of yacc.c  */
-#line 382 "parser.y"
+#line 388 "parser.y"
     {                                 // Multiplication (OP_MATH_MULT)
 	  	(yyval.op) = op_new(OP_MATH_MULT, (yyvsp[(1) - (3)].op), (yyvsp[(3) - (3)].op), NULL);
 	  }
@@ -2189,7 +2195,7 @@ yyreduce:
 
   case 53:
 /* Line 1792 of yacc.c  */
-#line 385 "parser.y"
+#line 391 "parser.y"
     {                                // Division (OP_MATH_DIV)
 	  	(yyval.op) = op_new(OP_MATH_DIV, (yyvsp[(1) - (3)].op), (yyvsp[(3) - (3)].op), NULL);
 	  }
@@ -2197,7 +2203,7 @@ yyreduce:
 
   case 54:
 /* Line 1792 of yacc.c  */
-#line 388 "parser.y"
+#line 394 "parser.y"
     {                                  // Division entière (OP_MATH_INTDIV)
 	  	(yyval.op) = op_new(OP_MATH_INTDIV, (yyvsp[(1) - (3)].op), (yyvsp[(3) - (3)].op), NULL);
 	  }
@@ -2205,7 +2211,7 @@ yyreduce:
 
   case 55:
 /* Line 1792 of yacc.c  */
-#line 391 "parser.y"
+#line 397 "parser.y"
     {                               // Modulo (OP_MATH_MODULO)
 	  	(yyval.op) = op_new(OP_MATH_MODULO, (yyvsp[(1) - (3)].op), (yyvsp[(3) - (3)].op), NULL);
 	  }
@@ -2213,7 +2219,7 @@ yyreduce:
 
   case 56:
 /* Line 1792 of yacc.c  */
-#line 394 "parser.y"
+#line 400 "parser.y"
     {                                 // Moins unaire (OP_MATH_M_UNARY)
 	  	(yyval.op) = op_new(OP_MATH_M_UNARY, (yyvsp[(2) - (2)].op), NULL, NULL);
 	  }
@@ -2221,7 +2227,7 @@ yyreduce:
 
   case 57:
 /* Line 1792 of yacc.c  */
-#line 397 "parser.y"
+#line 403 "parser.y"
     {                                  // Plus unaire (OP_MATH_P_UNARY)
 	  	(yyval.op) = op_new(OP_MATH_P_UNARY, (yyvsp[(2) - (2)].op), NULL, NULL);
 	  }
@@ -2229,7 +2235,7 @@ yyreduce:
 
   case 58:
 /* Line 1792 of yacc.c  */
-#line 400 "parser.y"
+#line 406 "parser.y"
     {                                 // Supérieur (OP_LOG_GT)
 	  	(yyval.op) = op_new(OP_LOG_GT, (yyvsp[(1) - (3)].op), (yyvsp[(3) - (3)].op), NULL);
 	  }
@@ -2237,7 +2243,7 @@ yyreduce:
 
   case 59:
 /* Line 1792 of yacc.c  */
-#line 403 "parser.y"
+#line 409 "parser.y"
     {                                 // inférieur (OP_LOG_LT)
 		(yyval.op) = op_new(OP_LOG_LT, (yyvsp[(1) - (3)].op), (yyvsp[(3) - (3)].op), NULL);
 	  }
@@ -2245,7 +2251,7 @@ yyreduce:
 
   case 60:
 /* Line 1792 of yacc.c  */
-#line 406 "parser.y"
+#line 412 "parser.y"
     {                               // Supérieur ou égal (OP_LOG_GE)
 	  	(yyval.op) = op_new(OP_LOG_GE, (yyvsp[(1) - (3)].op), (yyvsp[(3) - (3)].op), NULL);
 	  }
@@ -2253,7 +2259,7 @@ yyreduce:
 
   case 61:
 /* Line 1792 of yacc.c  */
-#line 409 "parser.y"
+#line 415 "parser.y"
     {                               // Supérieur (OP_LOG_LE)
 	  	(yyval.op) = op_new(OP_LOG_LE, (yyvsp[(1) - (3)].op), (yyvsp[(3) - (3)].op), NULL);
 	  }
@@ -2261,7 +2267,7 @@ yyreduce:
 
   case 62:
 /* Line 1792 of yacc.c  */
-#line 412 "parser.y"
+#line 418 "parser.y"
     {                              // Egalité (OP_LOG_EQ)
 	  	(yyval.op) = op_new(OP_LOG_EQ, (yyvsp[(1) - (3)].op), (yyvsp[(3) - (3)].op), NULL);
 	  }
@@ -2269,7 +2275,7 @@ yyreduce:
 
   case 63:
 /* Line 1792 of yacc.c  */
-#line 415 "parser.y"
+#line 421 "parser.y"
     {                              // Egalité de type (OP_LOG_TYPE)
 		(yyval.op) = op_new(OP_LOG_TYPE, (yyvsp[(1) - (3)].op), (yyvsp[(3) - (3)].op), NULL);
 	  }
@@ -2277,7 +2283,7 @@ yyreduce:
 
   case 64:
 /* Line 1792 of yacc.c  */
-#line 418 "parser.y"
+#line 424 "parser.y"
     {                                  // Différence (OP_LOG_DIF)
 	  	(yyval.op) = op_new(OP_LOG_DIF, (yyvsp[(1) - (3)].op), (yyvsp[(3) - (3)].op), NULL);
 	  }
@@ -2285,7 +2291,7 @@ yyreduce:
 
   case 65:
 /* Line 1792 of yacc.c  */
-#line 421 "parser.y"
+#line 427 "parser.y"
     {                                  // ET (OP_LOG_AND)
 	  	(yyval.op) = op_new(OP_LOG_AND, (yyvsp[(1) - (3)].op), (yyvsp[(3) - (3)].op), NULL);
 	  }
@@ -2293,7 +2299,7 @@ yyreduce:
 
   case 66:
 /* Line 1792 of yacc.c  */
-#line 424 "parser.y"
+#line 430 "parser.y"
     {                                   // OU (OP_LOG_OR)
 	  	(yyval.op) = op_new(OP_LOG_OR, (yyvsp[(1) - (3)].op), (yyvsp[(3) - (3)].op), NULL);
 	  }
@@ -2301,7 +2307,7 @@ yyreduce:
 
   case 67:
 /* Line 1792 of yacc.c  */
-#line 427 "parser.y"
+#line 433 "parser.y"
     {                                             // Inversion logique (OP_LOG_NOT)
 	  	(yyval.op) = op_new(OP_LOG_NOT, (yyvsp[(2) - (2)].op), NULL, NULL);
 	  }
@@ -2309,7 +2315,7 @@ yyreduce:
 
   case 68:
 /* Line 1792 of yacc.c  */
-#line 430 "parser.y"
+#line 436 "parser.y"
     {                                           // Test existance (OP_LOG_EXIST)
 	  	(yyval.op) = op_new(OP_LOG_EXIST, (yyvsp[(2) - (2)].op), NULL, NULL);
 	  }
@@ -2317,7 +2323,7 @@ yyreduce:
 
   case 69:
 /* Line 1792 of yacc.c  */
-#line 433 "parser.y"
+#line 439 "parser.y"
     {                                          // Return (OP_RETURN)
 	  	(yyval.op) = op_new(OP_RETURN, (yyvsp[(2) - (2)].op), NULL, NULL);
 	  }
@@ -2325,7 +2331,7 @@ yyreduce:
 
   case 70:
 /* Line 1792 of yacc.c  */
-#line 436 "parser.y"
+#line 442 "parser.y"
     {                                                     // Return (seul) (OP_RETURN)
 	  	(yyval.op) = op_new(OP_RETURN, NULL, NULL, NULL);
 	  }
@@ -2333,7 +2339,7 @@ yyreduce:
 
   case 71:
 /* Line 1792 of yacc.c  */
-#line 439 "parser.y"
+#line 445 "parser.y"
     {                                                      // Break (OP_BREAK)
 	  	(yyval.op) = op_new(OP_BREAK, NULL, NULL, NULL);
 	  }
@@ -2341,40 +2347,40 @@ yyreduce:
 
   case 72:
 /* Line 1792 of yacc.c  */
-#line 442 "parser.y"
-    {                                          // Typeof (OP_TYPE_TYPEOF)	  	
+#line 448 "parser.y"
+    {                                          // Typeof (OP_TYPE_TYPEOF)
 		(yyval.op) = op_new(OP_TYPE_TYPEOF, (yyvsp[(2) - (2)].op), NULL, NULL);
 	  }
     break;
 
   case 73:
 /* Line 1792 of yacc.c  */
-#line 445 "parser.y"
-    {                                   // Typeof (OP_TYPE_IS)	  	
+#line 451 "parser.y"
+    {                                   // Typeof (OP_TYPE_IS)
 		(yyval.op) = op_new(OP_TYPE_IS, (yyvsp[(1) - (3)].op), (yyvsp[(3) - (3)].op), NULL);
 	  }
     break;
 
   case 74:
 /* Line 1792 of yacc.c  */
-#line 448 "parser.y"
-    {                                            // Dump (OP_OUTPUT_VAR_DUMP)	  	
+#line 454 "parser.y"
+    {                                            // Dump (OP_OUTPUT_VAR_DUMP)
 		(yyval.op) = op_new(OP_OUTPUT_VAR_DUMP, (yyvsp[(2) - (2)].op), NULL, NULL);
 	  }
     break;
 
   case 75:
 /* Line 1792 of yacc.c  */
-#line 451 "parser.y"
+#line 457 "parser.y"
     {                                                   // Déclaration de fonction (OP_UNIT)
 	  	(yyval.op) = op_new(OP_UNIT, NULL, NULL, var_new(NULL, 0, T_FUNCTION));
-	  	(yyval.op)->value->value.v_func = (yyvsp[(1) - (1)].function); 
+	  	(yyval.op)->value->value.v_func = (yyvsp[(1) - (1)].function);
 	  }
     break;
 
 
 /* Line 1792 of yacc.c  */
-#line 2378 "parser.tab.c"
+#line 2384 "parser.tab.c"
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -2606,7 +2612,7 @@ yyreturn:
 
 
 /* Line 2055 of yacc.c  */
-#line 457 "parser.y"
+#line 463 "parser.y"
 
 
 // Erreur durant l'analyse lexicale (flex) ou syntaxique (yacc)
@@ -2641,11 +2647,11 @@ int yyerror(const char *s) {
     puts("^");
 
   	printf("[x] Error | %d: %s: '%s'\n", yylineno, s, yytext);
-  	
+
   	return 0;
 }
 
-// Début d'un token 
+// Début d'un token
 void beginToken(const char *t) {
 	// Avant le token
 	tokenStart += tokenLength;
@@ -2683,7 +2689,7 @@ void interactive(void* to_exec, ptr_type type) {
 		}
 
 		// Evaluation
-		puts("\n[<] Evaluating the statement ...");
+		if(p.verbose) puts("\n[<] Evaluating the statement ...");
 		rc = op_eval(&ec_obj, &ec_tmp, (Operation*)to_exec, &r);
 
 	} else if(type == LLT_CONDITION) {
@@ -2695,8 +2701,30 @@ void interactive(void* to_exec, ptr_type type) {
 		}
 
 		// Evaluation
-		puts("\n[<] Evaluating the condition ...");
+		if(p.verbose) puts("\n[<] Evaluating the condition ...");
 		rc = unit_cond_eval(&ec_obj, &ec_tmp, (Unit_conditional*)to_exec, r);
+	} else if(type == LLT_LOOP) {
+
+		if(p.show_operation) {
+			puts("[>] Result in memory :"), unit_loop_dump((Unit_loop*)to_exec);
+			fputs("[*] Press enter to eval", stdout);
+			getchar();
+		}
+
+		// Evaluation
+		if(p.verbose) puts("\n[<] Evaluating the loop ...");
+		rc = unit_loop_eval(&ec_obj, &ec_tmp, (Unit_loop*)to_exec, r);
+	} else if(type == LLT_UNIT) {
+
+		if(p.show_operation) {
+			puts("[>] Result in memory :"), unit_dump((Unit*)to_exec);
+			fputs("[*] Press enter to eval", stdout);
+			getchar();
+		}
+
+		// Evaluation
+		if(p.verbose) puts("\n[<] Evaluating the unit ...");
+		rc = unit_eval(&ec_obj, &ec_tmp, ((Unit*)to_exec)->statements, r);
 	}
 
 	// Analyse
@@ -2722,7 +2750,7 @@ void interactive(void* to_exec, ptr_type type) {
 			break;
 	}
 
-	puts("[<] Evaluation done");
+	if(p.verbose) puts("[<] Evaluation done");
 
 	if(p.auto_dump && type == LLT_OPERATION) {
 		puts("\n[>] Statement value :");
@@ -2736,7 +2764,7 @@ void interactive(void* to_exec, ptr_type type) {
 		r = &r_base;
 
 	beginTokenNewLine();
-	puts("");
+	if(p.verbose) puts("");
 }
 
 // Main
@@ -2746,11 +2774,22 @@ int main(int argc, char **argv) {
 	params_init();
 	params_make(argc, argv);
 
+	// Init des fonctions built-in
+	func_builtin_tab[0] = console_init;
+	func_builtin_tab_n = 1;
+
+
 	if(p.interactive_mod) {
 		puts("[i] Starting in interactive mode");
 		inside = 0; show_prompt = 1;
+
+		// Contexte
 		ec_init_loc(&ec_obj);
 		ec_init_loc(&ec_tmp);
+
+		// Initialisation des fonctions built-in
+    	unit_init_builtin(&ec_obj);
+
 		yyparse();
 	} else {
 		puts("[i] Starting in file mode");

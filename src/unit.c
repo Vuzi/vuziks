@@ -4,8 +4,22 @@
 #include "unit.h"
 
 // Prototypes statiques
-static return_code unit_eval(Exec_context* ec_obj, Exec_context* ec_var, Linked_list* stmts, Variable* eval_value);
 static void unit_statements_delete(Linked_list* statements);
+
+// Initialisation des fonctions built-in forcément dans le langage
+void unit_init_builtin(Exec_context* ec) {
+
+    unsigned int i = 0;
+
+    // Pour chaque fonction d'initialisation présente, on load
+    for(; i < func_builtin_tab_n; i++) {
+        Object* o = func_builtin_tab[i](ec);
+        Variable* v = var_new(o->name, o->name_h, T_OBJECT);
+        v->value.v_obj = o;
+
+        linked_list_push(&(ec->variables), LLT_VARIABLE, (void*)v);
+    }
+}
 
 // Point d'entrée principal du programme
 void unit_main(Unit* start) {
@@ -14,6 +28,9 @@ void unit_main(Unit* start) {
     // Retour & contexte
     Exec_context ec_obj, ec_var;
     Variable eval_value;
+
+    // Initialisation des fonctions built-in
+    unit_init_builtin(&ec_obj);
 
     p.start_exec = clock(); // début timer
 
@@ -58,13 +75,12 @@ void unit_main(Unit* start) {
     if(p.show_timer)
         printf("[i] Executed in %.4fs\n", ((p.end_exec-p.start_exec)/(double)CLOCKS_PER_SEC));
 
-
     // Fin du programme
 	exit(goodbye); // ou exit ?
 }
 
 // vérifié
-static return_code unit_eval(Exec_context* ec_obj, Exec_context* ec_var, Linked_list* stmts, Variable* eval_value) {
+return_code unit_eval(Exec_context* ec_obj, Exec_context* ec_var, Linked_list* stmts, Variable* eval_value) {
 
     return_code rc = RC_OK;
     Variable *save = eval_value;
@@ -82,13 +98,11 @@ static return_code unit_eval(Exec_context* ec_obj, Exec_context* ec_var, Linked_
             case LLT_LOOP :
                 rc = unit_loop_eval(ec_obj, ec_var, (Unit_loop*)stmts->value, eval_value);
                 break;
-            case LLT_UNIT :
-                {
+            case LLT_UNIT : {
                     Exec_context ec_local; ec_init_loc(&ec_local); ec_local.container = ec_var;
                     rc = unit_eval(ec_obj, ec_var, ((Unit*)stmts->value)->statements, eval_value);
                     ec_empty(&ec_local);
                 }
-
                 break;
             default :
                 err_add(E_CRITICAL, FORBIDDEN_TYPE, "Statement with an unknown type (%x)", stmts->type);
@@ -212,6 +226,67 @@ return_code unit_function(Exec_context *ec_obj, Exec_context *ec_var_caller, Lin
     eval_quit:
         ec_empty(&ec_var);
         return rc;
+}
+
+// Prototype des fonctions built-in
+// objet contenu (si attribut, sinon NULL) | liste arguments | Variable ou écrire le résultat de retour en copie | flag d'utilisation ( 0 = function | 1 = constructeur )
+return_code unit_function_builtin(Exec_context *ec_obj, Exec_context *ec_var_caller, Variable* function, Linked_list* args, Variable* eval_value, int as_constructor) {
+    if(function && function->value.v_func_builtin) {
+
+        return_code rc = RC_OK;
+
+        // Objet
+        Object *o = NULL;
+
+        if(function->container)
+            o = function->container->object;
+
+        // Arguments
+        Linked_list *v_args = NULL;
+
+        while(args) {
+            // Une évaluation peut soit écrire dans notre buffer, soit utiliser le pointeur pour pointer sur un autre élément
+            Variable var, *var_r = &var;
+            var_init_loc(var_r, NULL, 0, T_NULL);
+
+            // Evaluation
+            switch((rc = op_eval(ec_obj, ec_var_caller, (Operation*)args->value, &var_r))) {
+                case RC_WARNING :
+                    err_display_last();
+                case RC_OK :
+                    break;
+                case RC_BREAK :
+                case RC_RETURN :
+                    goto eval_quit;
+                case RC_ERROR :
+                case RC_CRITICAL :
+                    if(var.type != T_NULL) var_empty(&var); // Libération
+                    goto eval_quit;
+                default :
+                    if(var.type != T_NULL) var_empty(&var); // Libération
+                    err_add(E_CRITICAL, UNKOWN_TYPE, "Unknown evalution return type (%x)", rc);
+                    rc = RC_CRITICAL;
+                    goto eval_quit;
+            }
+
+            // Ajout à la liste temporaire, ici par référence car les fonctions built-in n'ont pas besoin de modifier ces variables directement
+            linked_list_append(&v_args, LLT_VARIABLE, var_r);
+
+            // Libération de notre buffer
+            if(var.type != T_NULL)
+                var_empty(&var);
+
+            NEXT(args);
+        }
+
+        rc = function->value.v_func_builtin(o, v_args, eval_value, as_constructor);
+
+        eval_quit:
+            return rc;
+    } else {
+        err_add(E_CRITICAL, UNKOWN_TYPE, "Null built-in function (%s)", var_name(function));
+        return RC_CRITICAL;
+    }
 }
 
 // Vérifié

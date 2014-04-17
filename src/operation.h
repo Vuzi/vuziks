@@ -9,9 +9,7 @@
 
 // Includes
 #include "hash/hash.h"
-#include "err/err.h"
-#include "str/str.h"
-#include "math/math.h"
+#include "variable.h"
 
 // Les différents types de types
 #define OP_UNIT_TYPE 0x100
@@ -60,16 +58,14 @@ typedef enum e_operation_type {
 
 } operation_type;
 
-
-typedef struct s_Variale Variable;
-
 // Information de l'opération (déclarations & numéro de ligne)
 typedef struct s_Operation_identifier {
     char* s;
     hash_t s_h;
 } Operation_identifier;
 
-#include "variableOp.h"
+typedef struct s_Variable Variable;
+
 // Opération (noed de l'arbre)
 typedef struct s_Operation {
 	struct s_Operation *operations[2];
@@ -78,6 +74,9 @@ typedef struct s_Operation {
     Operation_identifier identifier;
     Variable* value;
 } Operation;
+
+#include "unit.h"
+#include "variableOp.h"
 
 // Prototypes
 return_code op_eval(Exec_context* ec_obj, Exec_context* ec_var, Operation* op, Variable** eval_value);

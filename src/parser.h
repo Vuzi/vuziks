@@ -104,7 +104,7 @@ extern int yydebug;
 typedef union YYSTYPE
 {
 /* Line 2058 of yacc.c  */
-#line 49 "parser.y"
+#line 55 "parser.y"
 
   Unit_conditional *condition;
   Unit_loop *loop;

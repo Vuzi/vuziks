@@ -82,12 +82,19 @@ return_code op_eval(Exec_context* ec_obj, Exec_context* ec_var, Operation* op, V
 
 static return_code unit_op(operation_type type, Exec_context* ec_obj, Exec_context* ec_var, Variable* args, Variable* function, Variable* eval_value) {
 
+    // Fonction classique
     if(function->type == T_FUNCTION) {
         if(type == OP_UNIT_NEW) // constructor
             return unit_constructor((function->container ? function->container : ec_obj), ec_var, (args ? args->value.v_llist : NULL), function->value.v_func, eval_value);
         else // fonction
             return unit_function((function->container ? function->container : ec_obj), ec_var, (args ? args->value.v_llist : NULL), function->value.v_func, eval_value);
-    } else {
+    }
+    // Fonction built-in
+    else if(function->type == T_FUNCTION_BUILTIN) {
+        return unit_function_builtin((function->container ? function->container : ec_obj), ec_var, function, (args ? args->value.v_llist : NULL), eval_value, type == OP_UNIT_NEW ? 1 : 0);
+    }
+    // Erreur
+    else {
         err_add(E_ERROR, FORBIDDEN_TYPE, "Trying to use a '%s' as a function", language_type_debug(function->type));
         return RC_ERROR;
     }

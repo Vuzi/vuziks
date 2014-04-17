@@ -27,6 +27,8 @@ const char* language_type_debug(language_type l) {
             return "array";
         case T_LINKEDLIST:
             return "linked list";
+        case T_FUNCTION_BUILTIN:
+            return "function built-in";
         case T_FUNCTION:
             return "function";
         case T_OBJECT:
@@ -232,6 +234,9 @@ void var_dump(Variable *v) {
             case T_LINKEDLIST:
                 puts("linked list");
                 // todo
+                break;
+            case T_FUNCTION_BUILTIN:
+                puts("(compiled code)");
                 break;
             case T_FUNCTION:
                 puts("function : ");

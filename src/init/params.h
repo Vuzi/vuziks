@@ -18,6 +18,7 @@ typedef struct s_Params {
     char auto_dump;
     char mem_info;
     char show_timer;
+    char verbose;
 
     time_t start_parsing;
     time_t end_parsing;

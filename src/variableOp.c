@@ -194,6 +194,9 @@ static return_code var_op_equal(Variable *a, Variable *b, Variable *r, operation
             case T_ARRAY :
                 r->value.v_bool = (a/*->value.v_array*/ == b/*->value.v_array*/ ? 1 : 0);
                 break;
+            case T_FUNCTION_BUILTIN :
+                r->value.v_bool = (a->value.v_func_builtin == b->value.v_func_builtin ? 1 : 0);
+                break;
             case T_FUNCTION :
                 r->value.v_bool = (a->value.v_func == b->value.v_func ? 1 : 0);
                 break;
@@ -371,6 +374,7 @@ return_code var_op_return(Variable *a, Variable* eval_value) {
             case T_NUM :
             case T_BOOL :
             case T_FUNCTION :
+            case T_FUNCTION_BUILTIN :
                 eval_value->value = a->value;
                 eval_value->type= a->type;
                 return RC_OK;
@@ -417,6 +421,7 @@ return_code var_op_assign(Variable* a, Variable* b, Variable** eval_value) {
                 case T_NUM :
                 case T_BOOL :
                 case T_FUNCTION :
+                case T_FUNCTION_BUILTIN :
                     a->value = b->value;
                     a->type= b->type;
                     return RC_OK;

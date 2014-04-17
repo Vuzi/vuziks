@@ -7,16 +7,9 @@
 
 // Includes
 #include <math.h>
-
-#include "hash/hash.h"
-#include "err/err.h"
-#include "str/str.h"
 #include "math/math.h"
 #include "variable.h"
-#include "unit.h"
 #include "operation.h"
-
-typedef struct s_Operation Operation;
 
 // Prototypes
 return_code var_op(Variable* a, Variable* b, Variable* eval_value, operation_type type);
