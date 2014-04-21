@@ -24,15 +24,16 @@ typedef struct t_Array {
 
 //Prototypes
 
-Array* array_init()
-int array_get(Array* a, int key)
-int array_remove(Array* a, int key)
-void array_push(Array* a, int val)
-void array_add(Array* a, int key, int value)
-void array_pop(Array* a, int val)
-void array_sort(Array* a)
-bool array_eq(Array* a, Array *b)
-void array_del(Array** a)
+Array* array_init();
+int array_get(Array* a, int key);
+void array_remove(Array* a, int key);
+void array_push(Array* a, int val);
+void array_add(Array* a, int key, int value);
+void array_pop(Array* a);
+void array_sort(Array* a);
+bool array_eq(Array* a, Array *b);
+void array_del(Array* a);
+void array_resize(Array* a);
 
 
 #endif // TAB_H_INCLUDED
