@@ -1,4 +1,4 @@
-Règles d'écriture :
+﻿Règles d'écriture :
 
 Toutes les fonctions de traitement doivent retourner une variable de type return_code. Celle-ci peu prendre 4 valeurs:
 
