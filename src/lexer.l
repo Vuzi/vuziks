@@ -78,6 +78,8 @@ reel      {entier}?("."?{entier}){exposant}?
 char      [_a-zA-Z]
 var       {char}({char}|{chiffre})*
 
+string    "\""(\\.|[^"])*"\""|"\'"(\\.|[^'])*"\'"
+
 /* règles */
 %x IN_COMMENT
 %x IN_COMMENT_LINE
@@ -97,6 +99,11 @@ var       {char}({char}|{chiffre})*
 
 (?i:true)         { beginToken(yytext); yylval.bool = 1; return(BOOL); }
 (?i:false)	      { beginToken(yytext); yylval.bool = 0; return(BOOL); }
+
+{string} 		  { beginToken(yytext);
+					yytext++; yytext[strlen(yytext) - 1] = '\0';
+	                yylval.str = str_copy(yytext); 
+	                return(STRING); }
 
 (?i:nonexistent)  { beginToken(yytext); yylval.type = T_NONEXISTENT; return(TYPE); }
 (?i:undefined)    { beginToken(yytext); yylval.type = T_NONEXISTENT; return(TYPE); }

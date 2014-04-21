@@ -38,6 +38,7 @@ extern size_t size_alloc;
 
 // Prototypes
 void* xmalloc(size_t s);
+void* xcalloc(size_t n, size_t s);
 void xfree(void* p);
 
 void print_memory_info(void);

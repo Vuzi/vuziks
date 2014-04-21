@@ -87,6 +87,9 @@ Object* var_new_object(Linked_list* variables) {
     o->n_links = 1;
     o->ec.container = NULL;
     o->ec.variables = variables;
+    o->data = NULL;
+    o->name = NULL;
+    o->name_h = 0;
 
     return o;
 }
@@ -258,6 +261,11 @@ return_code var_empty_args(Linked_list *v) {
 return_code var_delete_object(Object *o) {
     if(--(o->n_links) <= 0) {
         var_empty_llist(o->ec.variables); // On vide les variables membres
+
+        if(o->name_h == STRING_HASH)
+                string_delete(o);
+
+        if(o->data) xfree(o->data);
         xfree(o);
     }
     return RC_OK;

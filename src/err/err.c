@@ -10,7 +10,7 @@ int nb_alloc = 0;
 size_t size_alloc = 0;
 
 void print_memory_info(void) {
-    printf("[i] %u memory block(s) not free'd \n", nb_alloc);
+    printf("[i] %d memory block(s) not free'd \n", nb_alloc);
     printf("[i] %lu octets malloc'd \n", (long unsigned int)size_alloc/8);
 }
 
@@ -20,6 +20,17 @@ void* xmalloc(size_t s) {
     size_alloc += s;
     if(!p) {
         perror("[x] Error mallo() :");
+        exit(EXIT_FAILURE);
+    }
+    return p;
+}
+
+void* xcalloc(size_t n, size_t s) {
+    void* p = calloc(n, s);
+    nb_alloc++;
+    size_alloc += (s*n);
+    if(!p) {
+        perror("[x] Error calloc() :");
         exit(EXIT_FAILURE);
     }
     return p;

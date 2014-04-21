@@ -60,6 +60,7 @@ typedef struct s_Variable {
 
 #include "operation.h"
 #include "debug.h"
+#include "builtin/built-in.h"
 
 // Prototypes
 return_code var_init_loc(Variable *a, char* name, hash_t name_h, language_type type);

@@ -11,7 +11,6 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="pgcd.vz --show-op" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
@@ -46,6 +45,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="builtin/console.h" />
+		<Unit filename="builtin/strings.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="builtin/strings.h" />
 		<Unit filename="constant.h" />
 		<Unit filename="debug.c">
 			<Option compilerVar="CC" />

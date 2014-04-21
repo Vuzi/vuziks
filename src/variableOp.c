@@ -427,9 +427,11 @@ return_code var_op_assign(Variable* a, Variable* b, Variable** eval_value) {
                     return RC_OK;
                 // Cas par recopie de référence
                 case T_OBJECT :
-                    a->value.v_obj = b->value.v_obj;
-                    a->value.v_obj->n_links++;
-                    a->type= b->type;
+                    if(a->value.v_obj != b->value.v_obj) {
+                        a->value.v_obj = b->value.v_obj;
+                        a->value.v_obj->n_links++;
+                        a->type= b->type;
+                    }
                     return RC_OK;
                 case T_LINKEDLIST :
                     // A refaire

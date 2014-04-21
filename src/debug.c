@@ -211,7 +211,7 @@ void var_dump(Variable *v) {
         if(v->container) fputs(" <attr>", stdout); else fputs(" <var>", stdout);
         if(v->name) printf(" '%s' :\n", v->name);
         else puts(" <anonymous> :");
-        debug_pr_lvl(), printf("  name_h : %lu\n", (long unsigned)v->name_h);
+        debug_pr_lvl(), printf("  name_h : %ld\n", (long unsigned)v->name_h);
         debug_pr_lvl(), printf("  type : %s\n", language_type_debug(v->type));
         debug_pr_lvl(),  fputs("  value : ", stdout);
 

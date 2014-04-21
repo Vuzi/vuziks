@@ -31,8 +31,11 @@ static void console_print_var(Variable *v) {
             case T_FUNCTION_BUILTIN :
                 fputs("built-in function", stdout); break;
             case T_OBJECT  :
-                // Tester le hash de string / array / linked-list
-                fputs("object", stdout); break;
+                if(v->value.v_obj->name_h == STRING_HASH) {
+                    fputs(((VK_String*)v->value.v_obj->data)->s ,stdout);
+                } else
+                    fputs("object", stdout);
+                break;
             case T_ARGS :
                 fputs("args", stdout); break;
             default :
@@ -50,7 +53,7 @@ return_code console_print(Object* o, Linked_list *args, Variable* eval_value, in
     (void)o;
 
     if(as_constructor) {
-        err_add(E_ERROR, OP_IMPOSSIBLE, "Can't use this built-in function (print) as a constructor");
+        err_add(E_ERROR, OP_IMPOSSIBLE, "Can't use this built-in function (console.print) as a constructor");
         return RC_ERROR;
     }
 
@@ -79,6 +82,33 @@ return_code console_println(Object* o, Linked_list *args, Variable* eval_value, 
     return rc;
 }
 
+// Affiche une suite de variables, avec un saut de ligne à la fin
+return_code console_readln(Object* o, Linked_list *args, Variable* eval_value, int as_constructor) {
+
+    (void)o;
+    (void)args;
+
+    if(as_constructor) {
+        err_add(E_ERROR, OP_IMPOSSIBLE, "Can't use this built-in function (console.readln) as a constructor");
+        return RC_ERROR;
+    }
+
+    return_code rc = RC_OK;
+
+    unsigned int n = 0;
+    char buffer[512];
+    fgets(buffer, 512, stdin);
+    n = strlen(buffer);
+
+    buffer[n-1] = '\0';
+
+    strings_string(NULL, NULL, eval_value, 1);
+    ((VK_String*)eval_value->value.v_obj->data)->s = str_copy(buffer);
+    ((VK_String*)eval_value->value.v_obj->data)->n = n;
+
+    return rc;
+}
+
 // Initialisation de l'objet built-in console
 Object* console_init(Exec_context* ec_obj) {
     // Création de l'objet
@@ -93,14 +123,22 @@ Object* console_init(Exec_context* ec_obj) {
     // Ajout des fonctions
     Variable* v = var_new("print", str_hash("print"), T_FUNCTION_BUILTIN);
     v->value.v_func_builtin = console_print;
+    v->container = &o->ec; v->container->object = o;
     linked_list_push(&(o->ec.variables), LLT_VARIABLE, (void*)v);
 
     v = var_new("log", str_hash("log"), T_FUNCTION_BUILTIN);
-    v->value.v_func_builtin = console_print;
+    v->value.v_func_builtin = console_println;
+    v->container = &o->ec; v->container->object = o;
     linked_list_push(&(o->ec.variables), LLT_VARIABLE, (void*)v);
 
     v = var_new("println", str_hash("println"), T_FUNCTION_BUILTIN);
     v->value.v_func_builtin = console_println;
+    v->container = &o->ec; v->container->object = o;
+    linked_list_push(&(o->ec.variables), LLT_VARIABLE, (void*)v);
+
+    v = var_new("readln", str_hash("readln"), T_FUNCTION_BUILTIN);
+    v->value.v_func_builtin = console_readln;
+    v->container = &o->ec; v->container->object = o;
     linked_list_push(&(o->ec.variables), LLT_VARIABLE, (void*)v);
 
     return o;

@@ -1,0 +1,24 @@
+# Strings
+# -----------------------------------------
+# Quelques opérations sur des chaines
+# -----------------------------------------
+
+
+new var str_test = function(a) {
+	console.println("Chaine a : '", a, "' (length : ", a.length(), ")");
+	console.println("Chaine b : '", b, "' (length : ", b.length(), ")");
+
+	console.println("Chaine a+b : '", (a = a.append(b)), "' (length : ", a.length(), ")");
+	return a;
+};
+
+
+console.log("Entrez une chaine a :");
+new var a = console.readln();
+
+console.log("Entrez une chaine b :");
+new var b = console.readln();
+
+str_test(a, b);
+
+return 0;

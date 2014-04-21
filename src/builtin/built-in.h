@@ -9,5 +9,6 @@
 
 // Built-in
 #include "console.h"
+#include "strings.h"
 
 #endif // _H_BUILTIN

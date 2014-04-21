@@ -142,6 +142,8 @@ void op_delete(Operation *op) {
                 unit_empty(op->value->value.v_func);
                 xfree(op->value->value.v_func);
                 op->value->value.v_func = NULL;
+            } else if(op->value->type == T_FUNCTION_BUILTIN) {
+                //
             }
             var_delete(op->value);
         }

@@ -29,14 +29,14 @@ void unit_main(Unit* start) {
     Exec_context ec_obj, ec_var;
     Variable eval_value;
 
-    // Initialisation des fonctions built-in
-    unit_init_builtin(&ec_obj);
-
     p.start_exec = clock(); // début timer
 
     var_init_loc(&eval_value, NULL, 0, T_NULL);
     ec_init_loc(&ec_obj);
     ec_init_loc(&ec_var);
+
+    // Initialisation des fonctions built-in
+    unit_init_builtin(&ec_obj);
 
     switch(unit_eval(&ec_obj, &ec_var, start->statements, &eval_value)) {
         case RC_WARNING :
@@ -76,7 +76,7 @@ void unit_main(Unit* start) {
         printf("[i] Executed in %.4fs\n", ((p.end_exec-p.start_exec)/(double)CLOCKS_PER_SEC));
 
     // Fin du programme
-	exit(goodbye); // ou exit ?
+	exit(goodbye);
 }
 
 // vérifié
@@ -270,11 +270,12 @@ return_code unit_function_builtin(Exec_context *ec_obj, Exec_context *ec_var_cal
             }
 
             // Ajout à la liste temporaire, ici par référence car les fonctions built-in n'ont pas besoin de modifier ces variables directement
-            linked_list_append(&v_args, LLT_VARIABLE, var_r);
+            linked_list_append(&v_args, LLT_VARIABLE, (void*)var_copy_data(var_r, var_new(NULL, 0, T_NULL)));
 
             // Libération de notre buffer
             if(var.type != T_NULL)
                 var_empty(&var);
+
 
             NEXT(args);
         }
@@ -282,6 +283,7 @@ return_code unit_function_builtin(Exec_context *ec_obj, Exec_context *ec_var_cal
         rc = function->value.v_func_builtin(o, v_args, eval_value, as_constructor);
 
         eval_quit:
+            var_empty_llist(v_args); // Suppression des arguments envoyés
             return rc;
     } else {
         err_add(E_CRITICAL, UNKOWN_TYPE, "Null built-in function (%s)", var_name(function));

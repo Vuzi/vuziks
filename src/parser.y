@@ -66,7 +66,7 @@
 };
 
 // Liste des terminaux pouvant être rencontrés
-%token NUMBER BOOL TYPE
+%token NUMBER BOOL TYPE STRING
 %token PLUS MINUS STAR SLASH DIV POW EQUAL POINT ADDR MODULO MORE LESS MORE_E LESS_E AND OR NOT EXIST D_EQUAL T_EQUAL DIF
 %token P_LEFT P_RIGHT BRACE_LEFT BRACE_RIGHT
 %token COMMA
@@ -103,7 +103,7 @@
 %type <function>  Function
 %type <list>      Statements Unit Param_list Param_call_list
 %type <op>        Expression Statement
-%type <str>       IDENTIFIER
+%type <str>       IDENTIFIER STRING
 %type <type>      TYPE
 %type <value>     NUMBER
 %type <bool>      BOOL
@@ -281,13 +281,7 @@ Statements:
 // Une 'ligne' de code
 Statement:
 	  EXPR_END {
-	  	//if(inside > 0) inside--;
-	  	/*if(p.interactive_mod) {
-			puts("[!] Empty statement\n");
-			beginTokenNewLine();
-		} else {*/
 		$$ = NULL;
-		/*}*/
 	  }
 	| NEW_LINE {
 		$$ = NULL;
@@ -316,6 +310,13 @@ Expression:
 	| BOOL {                                                       // Booléen (OP_VALUE)
 	  	$$ = op_new(OP_VALUE, NULL, NULL, var_new(NULL, 0, T_BOOL));
 	  	$$->value->value.v_bool = $1;
+	  }
+	| STRING {                                                      // String (OP_VALUE)
+	  	$$ = op_new(OP_VALUE, NULL, NULL, var_new(NULL, 0, T_OBJECT));
+
+	  	strings_string(NULL, NULL, $$->value, 1);
+	  	((VK_String*)$$->value->value.v_obj->data)->s = $1;
+	  	((VK_String*)$$->value->value.v_obj->data)->n = strlen($1);
 	  }
 	| Expression POINT IDENTIFIER {                                // Accès a une variable membre (OP_ATTR_ACCESS)
 	  	$$ = op_new(OP_ATTR_ACCESS, $1, NULL, NULL);
@@ -623,7 +624,8 @@ int main(int argc, char **argv) {
 
 	// Init des fonctions built-in
 	func_builtin_tab[0] = console_init;
-	func_builtin_tab_n = 1;
+	func_builtin_tab[1] = strings_init;
+	func_builtin_tab_n = 2;
 
 
 	if(p.interactive_mod) {
