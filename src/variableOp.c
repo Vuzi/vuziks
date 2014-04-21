@@ -345,14 +345,20 @@ return_code var_op_attr_access(Variable *a, Operation_identifier *id, Variable *
         return RC_ERROR;
     } else {
         if(a->type == T_OBJECT) {
-            Variable *v = (a->value.v_obj ? var_search(a->value.v_obj->ec.variables, id->s, id->s_h) : NULL);
-            if(v) {
-                *eval_value = v;
-                return RC_OK;
+            // Sécurité provisoire
+            if(a->name_h) {
+                Variable *v = (a->value.v_obj ? var_search(a->value.v_obj->ec.variables, id->s, id->s_h) : NULL);
+                if(v) {
+                    *eval_value = v;
+                    return RC_OK;
+                } else {
+                    (*eval_value)->type = T_NONEXISTENT; (*eval_value)->name = id->s;
+                    err_add(E_WARNING, CANT_ACCESS, "Cannot access member variable '%s' in object '%s'", id->s, var_name(a));
+                    return RC_WARNING;
+                }
             } else {
-                (*eval_value)->type = T_NONEXISTENT; (*eval_value)->name = id->s;
-                err_add(E_WARNING, CANT_ACCESS, "Cannot access member variable '%s' in object '%s'", id->s, var_name(a));
-                return RC_WARNING;
+                err_add(E_ERROR, FORBIDDEN_TYPE, "Cannot access member variable (%s) of temporary variable", id->s);
+                return RC_ERROR;
             }
         } else {
             err_add(E_ERROR, FORBIDDEN_TYPE, "Cannot access member variable (%s) using a non-objet variable (%s - %s)",

@@ -11,6 +11,7 @@ void params_init(void) {
 	p.show_operation = 0;
 	p.auto_dump = 0;
 	p.mem_info = 0;
+	p.verbose = 0;
 
 	p.file = NULL;
 
@@ -162,6 +163,7 @@ static void show_help(void) {
          "     -i --interactive             Interactive mode (default with no files).\n"
          "       --auto-dump                    Automaticaly dump the last value of a statement.\n"
          "     --show-op                    Show the detail of each operation.\n"
+         "     --verbose                    Show more informations.\n"
          "     --show-timer                 Show a parser and execution timer in secondes.\n"
          "     --mem-info                   Show memory management informations.\n");
 }

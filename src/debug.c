@@ -263,10 +263,6 @@ void var_dump(Variable *v) {
     } else
         debug_pr_lvl(), puts(" <null> : \n\t(null)");
 }
-/*
-void var_obj_type_dump(Object *o) {
-    var_search(o->ec->variables, name)
-}*/
 
 // Affichage debug objet
 void var_obj_dump(Object *o) {

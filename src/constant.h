@@ -14,6 +14,6 @@ extern struct s_Object*(*func_builtin_tab[128])(Exec_context*);
 extern unsigned int func_builtin_tab_n;
 
 // Defines
-#define VERSION_NUM "0.01b"
+#define VERSION_NUM "0.03b"
 
 #endif
