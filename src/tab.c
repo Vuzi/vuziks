@@ -68,7 +68,18 @@ int array_pop(Array* a){
 }
 
 void array_sort(Array* a){
+    int i, j, tempKey, tempVal;
+    for(i = 0; i < a->nb_cases-1; i++)
+        for(j = i+1; j < a->nb_cases; j++)
+            if(VAL(a, a->i) > VAL(a, a->j)){
+                tempKey = KEY(a, a->i);
+                KEY(a, a->i) = KEY(a, a->j)
+                KEY(a, a->j) = tempKey;
 
+                tempVal = VAL(a, a->i);
+                VAL(a, a->i) = VAL(a, a->j)
+                VAL(a, a->j) = tempVal;
+            }
 }
 
 bool array_eq(Array* a, Array *b){
@@ -98,6 +109,18 @@ Array* array_init(){
     a->tab[1] = calloc(a->nb_cases_total, sizeof(int)); // valeur
 
     return a;
+}
+
+bool array_eq(Array* a, Array *b){
+    int i;
+    if(a->nb_cases != b->nb_cases)
+        returne false;
+
+    for(i = 0; i < a->nb_cases; i++)
+        if(KEY(a, a->i) != KEY(b, b->i) || VAL(a, a->i) != VAL(b, b->i))
+            return false;
+
+    return true;
 }
 
 void array_del(Array* a){
