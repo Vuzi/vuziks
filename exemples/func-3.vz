@@ -8,4 +8,4 @@ new var add = function(a,b,c) {
 	return a + b + c;
 };
 
-return add(72, -32, 2); # Retourne 72 + -30 + 2
+return add(72, -32, 2); # Retourne 72 + -32 + 2
