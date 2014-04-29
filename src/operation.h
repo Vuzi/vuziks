@@ -47,8 +47,8 @@ typedef enum e_operation_type {
     OP_VALUE = 0x2002, OP_DEC_VAR = 0x2003, OP_DEC_ATTR = 0x2004,
 
     // Déclaration de variable/de fonction et suppression de variable
-    OP_ACCES = 0x2020, OP_ACCES_VAR = 0x2021, OP_ACCES_ATTR = 0x2022, OP_ATTR_ACCESS = 0x2005, OP_DELETE_VAR = 0x2006,
-    OP_DELETE_ATTR = 0x2007, OP_UNIT = 0x2008,
+    OP_ACCES = 0x2020, OP_ACCES_VAR = 0x2021, OP_ACCES_ATTR = 0x2022, OP_TAB_ACCESS = 0x2023,
+    OP_ATTR_ACCESS = 0x2005, OP_DELETE_VAR = 0x2006, OP_DELETE_ATTR = 0x2007, OP_UNIT = 0x2008,
 
     // Opérateur spéciaux
 	OP_COMMA = 0x4000, OP_RETURN = 0x4001, OP_BREAK = 0x4002,

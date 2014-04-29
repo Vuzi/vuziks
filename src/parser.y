@@ -68,7 +68,7 @@
 // Liste des terminaux pouvant être rencontrés
 %token NUMBER BOOL TYPE STRING
 %token PLUS MINUS STAR SLASH DIV POW EQUAL POINT ADDR MODULO MORE LESS MORE_E LESS_E AND OR NOT EXIST D_EQUAL T_EQUAL DIF
-%token P_LEFT P_RIGHT BRACE_LEFT BRACE_RIGHT
+%token P_LEFT P_RIGHT BRACE_LEFT BRACE_RIGHT BRACKET_LEFT BRACKET_RIGHT
 %token COMMA
 %token VAR ATTR NEW DELETE TYPEOF IS
 %token IDENTIFIER FUNCTION IF ELSE FOR WHILE LOOP
@@ -317,6 +317,17 @@ Expression:
 	  	strings_string(NULL, NULL, $$->value, 1);
 	  	((VK_String*)$$->value->value.v_obj->data)->s = $1;
 	  	((VK_String*)$$->value->value.v_obj->data)->n = strlen($1);
+	  }
+	| Expression BRACKET_LEFT Expression BRACKET_RIGHT {           // Accès a une case de tableau (OP_TAB_ACCESS)
+		$$ = op_new(OP_TAB_ACCESS, $1, $3, NULL);
+	  }
+	| BRACKET_LEFT BRACKET_RIGHT {                                 // Nouveau tableau vide (OP_VALUE)
+	  	$$ = op_new(OP_VALUE, NULL, NULL, var_new(NULL, 0, T_OBJECT));
+	  	arrays_array(NULL, NULL, $$->value, 1);
+	  }
+	| BRACKET_LEFT Param_call_list BRACKET_RIGHT {                 // Nouveau tableau avec valeur (OP_VALUE) -- Non géré pour le moment
+	  	$$ = op_new(OP_VALUE, NULL, NULL, var_new(NULL, 0, T_OBJECT));
+	  	arrays_array(NULL, $2, $$->value, 1);
 	  }
 	| Expression POINT IDENTIFIER {                                // Accès a une variable membre (OP_ATTR_ACCESS)
 	  	$$ = op_new(OP_ATTR_ACCESS, $1, NULL, NULL);

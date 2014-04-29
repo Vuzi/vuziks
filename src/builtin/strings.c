@@ -9,7 +9,7 @@ Object* strings_init(Exec_context* ec_obj) {
 
     // Définition du type
     o->name = "strings";
-    o->name_h = str_hash(o->name);
+    o->name_h = STRINGS_HASH;
 
     // Ajout des fonctions
     Variable* v = var_new("string", str_hash("string"), T_FUNCTION_BUILTIN);
@@ -45,7 +45,7 @@ return_code strings_string(Object* o, Linked_list *args, Variable* eval_value, i
 
     // Nom d'objet : string
     eval_value->value.v_obj->name = "string";
-    eval_value->value.v_obj->name_h = str_hash(eval_value->value.v_obj->name);
+    eval_value->value.v_obj->name_h = STRING_HASH;
 
     // String en lui même
     VK_String* vks = xcalloc(1, sizeof(VK_String));

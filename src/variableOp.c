@@ -25,6 +25,29 @@ static return_code var_op_log(Variable *a, Variable *b, Variable *r, operation_t
 static return_code var_op_type(Variable *a, Variable *b, Variable *v, operation_type type);
 static return_code var_op_typeof(Variable *a, Variable *v);
 static return_code var_op_typeis(Variable *a, Variable *b, Variable *v);
+
+// Accès variables tableau ou string
+return_code var_op_access_tab(Variable *tab, Variable *key, Variable *eval_value) {
+    if(tab->type == T_OBJECT) {
+        // Tableaux
+        if(tab->value.v_obj->name_h == ARRAY_HASH) {
+            Linked_list ll; ll.next = NULL; ll.value = (void*)key; ll.type = LLT_VARIABLE;
+            arrays_array_get(tab->value.v_obj, &ll, eval_value, 0);
+            return RC_OK;
+        }
+        // String
+        else if (tab->value.v_obj->name_h == STRING_HASH) {
+            Linked_list ll; ll.next = NULL; ll.value = (void*)key; ll.type = LLT_VARIABLE;
+            (void)ll;
+            // A faire
+            return RC_OK;
+        }
+    }
+
+    err_add(E_CRITICAL, FORBIDDEN_TYPE, "Cannot use [ ] on type %s (Only for tab's and string's)", language_type_debug(tab->type));
+    return RC_ERROR;
+}
+
 // Opération
 static return_code var_op_add(Variable *a, Variable *b, Variable *r) {
     r->value.v_num = a->value.v_num + b->value.v_num;

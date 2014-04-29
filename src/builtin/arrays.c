@@ -39,15 +39,15 @@ return_code arrays_array(Object* o, Linked_list *args, Variable* eval_value, int
         return RC_ERROR;
     }
 
-    // Nouvel objet string
+    // Nouvel objet array
     eval_value->type = T_OBJECT;
     eval_value->value.v_obj = var_new_object(NULL);
 
-    // Nom d'objet : string
+    // Nom d'objet : array
     eval_value->value.v_obj->name = "array";
-    eval_value->value.v_obj->name_h = str_hash(eval_value->value.v_obj->name);
+    eval_value->value.v_obj->name_h = ARRAY_HASH;
 
-    // String en lui même
+    // Array en lui même
     Array* ar = xcalloc(1, sizeof(Array));
 
     eval_value->value.v_obj->data = (void*)ar;

@@ -82,7 +82,7 @@ return_code console_println(Object* o, Linked_list *args, Variable* eval_value, 
     return rc;
 }
 
-// Affiche une suite de variables, avec un saut de ligne à la fin
+// Lit une ligne
 return_code console_readln(Object* o, Linked_list *args, Variable* eval_value, int as_constructor) {
 
     (void)o;
@@ -109,6 +109,28 @@ return_code console_readln(Object* o, Linked_list *args, Variable* eval_value, i
     return rc;
 }
 
+// Lit un entir
+return_code console_readint(Object* o, Linked_list *args, Variable* eval_value, int as_constructor) {
+
+    (void)o;
+    (void)args;
+
+    if(as_constructor) {
+        err_add(E_ERROR, OP_IMPOSSIBLE, "Can't use this built-in function (console.readint) as a constructor");
+        return RC_ERROR;
+    }
+
+    char buffer[512];
+    fgets(buffer, 512, stdin);
+
+    buffer[strlen(buffer)-1] = '\0';
+
+    eval_value->type = T_NUM;
+    eval_value->value.v_num = (double)atoi(buffer);
+
+    return RC_OK;
+}
+
 // Initialisation de l'objet built-in console
 Object* console_init(Exec_context* ec_obj) {
     // Création de l'objet
@@ -118,7 +140,7 @@ Object* console_init(Exec_context* ec_obj) {
 
     // Définition du type
     o->name = "console";
-    o->name_h = str_hash(o->name);
+    o->name_h = CONSOLE_HASH;
 
     // Ajout des fonctions
     Variable* v = var_new("print", str_hash("print"), T_FUNCTION_BUILTIN);
@@ -138,6 +160,11 @@ Object* console_init(Exec_context* ec_obj) {
 
     v = var_new("readln", str_hash("readln"), T_FUNCTION_BUILTIN);
     v->value.v_func_builtin = console_readln;
+    v->container = &o->ec; v->container->object = o;
+    linked_list_push(&(o->ec.variables), LLT_VARIABLE, (void*)v);
+
+    v = var_new("readint", str_hash("readint"), T_FUNCTION_BUILTIN);
+    v->value.v_func_builtin = console_readint;
     v->container = &o->ec; v->container->object = o;
     linked_list_push(&(o->ec.variables), LLT_VARIABLE, (void*)v);
 

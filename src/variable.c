@@ -265,6 +265,9 @@ return_code var_delete_object(Object *o) {
         if(o->name_h == STRING_HASH)
                 string_delete(o);
 
+        if(o->name_h == ARRAY_HASH)
+                array_delete(o);
+
         if(o->data) xfree(o->data);
         xfree(o);
     }

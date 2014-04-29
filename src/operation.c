@@ -62,6 +62,8 @@ return_code op_eval(Exec_context* ec_obj, Exec_context* ec_var, Operation* op, V
         rc = ec_pop_var(ec_obj, &op->identifier, *eval_value);
     } else if(op->type == OP_ATTR_ACCESS) { // Accès valeur attribut, on utilise le pointeur du buffer
         rc = var_op_attr_access(var_r[0], &op->identifier, eval_value);
+    } else if(op->type == OP_TAB_ACCESS) { // Accès case de tableau
+        rc = var_op_access_tab(var_r[0], var_r[1], *eval_value);
     } else if(op->type & OP_ACCES) { // Accès de variable
         rc = ec_var_access(ec_obj, ec_var, op->type, &op->identifier, eval_value); // Utilise le pointeur du buffer
     } else if(op->type == OP_RETURN) { // Return

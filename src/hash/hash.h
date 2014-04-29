@@ -2,9 +2,10 @@
 #define _H_HASH
 
 #include <stdlib.h>
+#include <stdint.h>
 
 // Type hashage
-typedef size_t hash_t;
+typedef uint64_t hash_t;
 #define HASH_START 5381
 
 hash_t hash(hash_t h_val, char c);

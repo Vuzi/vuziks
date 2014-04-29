@@ -78,7 +78,7 @@ reel      {entier}?("."?{entier}){exposant}?
 char      [_a-zA-Z]
 var       {char}({char}|{chiffre})*
 
-string    "\""(\\.|[^"])*"\""|"\'"(\\.|[^'])*"\'"
+string    "\""(\\.|[^"])*"\""|"\'"(\\.|[^'])*"\'"'
 
 /* règles */
 %x IN_COMMENT
@@ -119,8 +119,6 @@ string    "\""(\\.|[^"])*"\""|"\'"(\\.|[^'])*"\'"
 
 (?i:object)       { beginToken(yytext); yylval.type = T_OBJECT; return(TYPE); }
 
-(?i:array)        { beginToken(yytext); yylval.type = T_ARRAY; return(TYPE); }
-
 (?i:list)         { beginToken(yytext); yylval.type = T_LINKEDLIST; return(TYPE); }
 
 "="               { beginToken(yytext); return(EQUAL); }
@@ -142,6 +140,8 @@ string    "\""(\\.|[^"])*"\""|"\'"(\\.|[^'])*"\'"
 "=="	          { beginToken(yytext); return(D_EQUAL); }
 "!="	          { beginToken(yytext); return(DIF); }
 "==="	          { beginToken(yytext); return(T_EQUAL); }
+"["               { beginToken(yytext); return(BRACKET_LEFT); }
+"]"               { beginToken(yytext); return(BRACKET_RIGHT); }
 
 (?i:and)	      { beginToken(yytext); return(AND); }
 (?i:or)   	      { beginToken(yytext); return(OR); }

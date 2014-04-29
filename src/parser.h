@@ -75,28 +75,30 @@ extern int yydebug;
      P_RIGHT = 284,
      BRACE_LEFT = 285,
      BRACE_RIGHT = 286,
-     COMMA = 287,
-     VAR = 288,
-     ATTR = 289,
-     NEW = 290,
-     DELETE = 291,
-     TYPEOF = 292,
-     IS = 293,
-     IDENTIFIER = 294,
-     FUNCTION = 295,
-     IF = 296,
-     ELSE = 297,
-     FOR = 298,
-     WHILE = 299,
-     LOOP = 300,
-     DUMP = 301,
-     EXPR_END = 302,
-     NEW_LINE = 303,
-     BREAK = 304,
-     RETURN = 305,
-     POS = 306,
-     NEG = 307,
-     ADDR_ACCESS = 308
+     BRACKET_LEFT = 287,
+     BRACKET_RIGHT = 288,
+     COMMA = 289,
+     VAR = 290,
+     ATTR = 291,
+     NEW = 292,
+     DELETE = 293,
+     TYPEOF = 294,
+     IS = 295,
+     IDENTIFIER = 296,
+     FUNCTION = 297,
+     IF = 298,
+     ELSE = 299,
+     FOR = 300,
+     WHILE = 301,
+     LOOP = 302,
+     DUMP = 303,
+     EXPR_END = 304,
+     NEW_LINE = 305,
+     BREAK = 306,
+     RETURN = 307,
+     POS = 308,
+     NEG = 309,
+     ADDR_ACCESS = 310
    };
 #endif
 
@@ -120,7 +122,7 @@ typedef union YYSTYPE
 
 
 /* Line 2058 of yacc.c  */
-#line 124 "parser.tab.h"
+#line 126 "parser.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

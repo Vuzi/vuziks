@@ -10,8 +10,10 @@
 #include "math/math.h"
 #include "variable.h"
 #include "operation.h"
+#include "builtin/arrays.h"
 
 // Prototypes
+return_code var_op_access_tab(Variable *tab, Variable *key, Variable *eval_value);
 return_code var_op(Variable* a, Variable* b, Variable* eval_value, operation_type type);
 return_code var_op_assign(Variable* a, Variable* b, Variable** eval_value);
 return_code var_op_attr_access(Variable* a, Operation_identifier* id, Variable** eval_value);
