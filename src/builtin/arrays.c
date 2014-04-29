@@ -12,8 +12,8 @@ Object* arrays_init(Exec_context* ec_obj) {
     o->name_h = str_hash(o->name);
 
     // Ajout des fonctions
-    Variable* v = var_new("arrays", str_hash("arrays"), T_FUNCTION_BUILTIN);
-    v->value.v_func_builtin = strings_string;
+    Variable* v = var_new("array", str_hash("array"), T_FUNCTION_BUILTIN);
+    v->value.v_func_builtin = arrays_array;
     v->container = &o->ec; v->container->object = o;
     linked_list_push(&(o->ec.variables), LLT_VARIABLE, (void*)v);
 
@@ -71,6 +71,13 @@ return_code arrays_array(Object* o, Linked_list *args, Variable* eval_value, int
 
     linked_list_push(&(eval_value->value.v_obj->ec.variables), LLT_VARIABLE, (void*)v);
 
+    v = var_new("pop", str_hash("pop"), T_FUNCTION_BUILTIN);
+    v->value.v_func_builtin = arrays_array_pop;
+    v->container = &eval_value->value.v_obj->ec;
+    v->container->object = eval_value->value.v_obj;
+
+    linked_list_push(&(eval_value->value.v_obj->ec.variables), LLT_VARIABLE, (void*)v);
+
     v = var_new("length", str_hash("length"), T_FUNCTION_BUILTIN);
     v->value.v_func_builtin = arrays_array_length;
     v->container = &eval_value->value.v_obj->ec;
@@ -89,13 +96,26 @@ void array_init(Array* a) {
     a->nb_cases = 0;
     a->nb_cases_total = 5;
 
-    a->tab_key = calloc(a->nb_cases_total, sizeof(int)); // clé
-    a->tab_value = calloc(a->nb_cases_total, sizeof(Variable)); // valeur
+    a->tab_key = xcalloc(a->nb_cases_total, sizeof(int)); // clé
+    a->tab_value = xcalloc(a->nb_cases_total, sizeof(Variable)); // valeur
 
     for(; i < a->nb_cases_total; i++) {
         var_init_loc_null(&(a->tab_value[i]));
     }
 }
+
+
+int array_search(Array* a, int key) {
+    unsigned int i = 0;
+
+    for(; i < a->nb_cases; i++) {
+        if(KEY(a, i) == key)
+            return (int)i;
+    }
+
+    return -1; // Pas trouvé
+}
+
 
 // Renvoit la valeur contenue dans une case du tableau
 Variable* array_get(Array* a, int key){
@@ -117,8 +137,8 @@ Variable* array_get(Array* a, int key){
 
 void array_resize(Array* a) {
     // Nouvelles cases
-    int* tab_key = malloc(sizeof(int)*(a->nb_cases_total)*1.5);
-    Variable* tab_value = malloc(sizeof(int)*(a->nb_cases_total)*1.5);
+    int* tab_key = xcalloc(a->nb_cases_total*1.5, sizeof(int));
+    Variable* tab_value = xcalloc(a->nb_cases_total*1.5, sizeof(Variable));
     unsigned int i = 0;
 
     // Recopie des données
@@ -236,6 +256,7 @@ return_code arrays_array_add(Object* o, Linked_list *args, Variable* eval_value,
 
     eval_value->type = T_OBJECT;
     eval_value->value.v_obj = o;
+    eval_value->value.v_obj->n_links++;
 
     if(args) {
         Variable *key = (Variable*)args->value;
@@ -263,11 +284,6 @@ return_code arrays_array_add(Object* o, Linked_list *args, Variable* eval_value,
 
 }
 
-// A faire : length / delete / push / pop
-// Et tout tester
-
-
-
 return_code arrays_array_length(Object* o, Linked_list *args, Variable* eval_value, int as_constructor) {
 
     (void)args;
@@ -289,6 +305,72 @@ return_code arrays_array_length(Object* o, Linked_list *args, Variable* eval_val
 
     return RC_OK;
 }
+
+return_code arrays_array_pop(Object* o, Linked_list *args, Variable* eval_value, int as_constructor) {
+
+    (void)args;
+
+    if(!o) {
+        err_add(E_ERROR, OP_IMPOSSIBLE, "Can't use this built-in function (array.pop) out of its object");
+        return RC_ERROR;
+    }
+
+    Array* a = (Array*) o->data;
+
+    if(as_constructor) {
+        err_add(E_ERROR, OP_IMPOSSIBLE, "Can't use this built-in function (array.pop) as a constructor");
+        return RC_ERROR;
+    }
+
+    // Pop avec arguments
+    if(args) {
+        Variable *key = (Variable*)args->value;
+
+        if(key->type == T_NUM) {
+            int val = (int)key->value.v_num;
+            int i = array_search(a, val);
+
+            if( i >= 0) {
+                // On récupère
+                eval_value->type = a->tab_value[i].type;
+                eval_value->value = a->tab_value[i].value;
+
+                // On recopie
+                for(; i < (int)a->nb_cases + 1; i++) {
+                    KEY(a, i) = KEY(a, i+1);
+                    VAL(a, i) = VAL(a, i+1);
+                }
+
+                a->nb_cases--;
+            } else {
+                eval_value->type = T_NONEXISTENT;
+            }
+
+        } else {
+            err_add(E_WARNING, OP_IMPOSSIBLE, "arrays' key can only be numbers");
+            return RC_WARNING;
+        }
+    }
+    // Sans argument
+    else {
+        if(a->nb_cases > 0) {
+            eval_value->type = a->tab_value[a->nb_cases - 1].type;
+            eval_value->value = a->tab_value[a->nb_cases - 1].value;
+            a->nb_cases--;
+        } else {
+            eval_value->type = T_NONEXISTENT;
+        }
+    }
+
+    return RC_OK;
+}
+
+
+
+// A faire : length / delete / push / pop
+// Et tout tester
+
+
 
 /*
 return_code strings_string_length(Object* o, Linked_list *args, Variable* eval_value, int as_constructor) {

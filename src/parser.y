@@ -625,7 +625,8 @@ int main(int argc, char **argv) {
 	// Init des fonctions built-in
 	func_builtin_tab[0] = console_init;
 	func_builtin_tab[1] = strings_init;
-	func_builtin_tab_n = 2;
+	func_builtin_tab[2] = arrays_init;
+	func_builtin_tab_n = 3;
 
 
 	if(p.interactive_mod) {

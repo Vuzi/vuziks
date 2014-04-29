@@ -6,11 +6,8 @@
 #include "../unit.h"
 #include "../err/err.h"
 
-// Bug GCC Windows..
-#define STRINGS_HASH 2936647663
-//#define STRINGS_HASH 229483039272943LL
-#define STRING_HASH 479440892
-//#define STRING_HASH 6954031493116LL
+#define STRINGS_HASH 229483039272943ULL
+#define STRING_HASH 6954031493116ULL
 
 typedef struct s_Object Object;
 typedef struct s_Exec_context Exec_context;

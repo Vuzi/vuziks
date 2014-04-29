@@ -8,8 +8,7 @@
 #include "../str/str.h"
 
 // Bug GCC Windows..
-#define CONSOLE_HASH 3547936600
-//#define CONSOLE_HASH 229462175725400LL
+#define CONSOLE_HASH 229462175725400ULL
 
 typedef struct s_Object Object;
 typedef struct s_Exec_context Exec_context;
